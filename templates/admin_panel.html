@@ -1,0 +1,2825 @@
+{% load pwa %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0066cc">
+<meta name="mobile-web-app-capable" content="yes">
+{% progressive_web_app_meta %}  <!-- ← cette ligne fait tout -->
+
+<title>OMEGA — Panneau Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  [data-theme="dark"]{--bg:#0f1117;--bg2:#161920;--bg3:#1e2130;--border:#2a2d3e;--accent:#4f8ef7;--accent2:#38d9a9;--accent3:#f77f4f;--danger:#f74f4f;--text:#e8eaf0;--text2:#8b90a7;--text3:#555970;--shadow:0 4px 24px rgba(0,0,0,0.4);--toggle-bg:#2a2d3e;--sig-stroke:#e8eaf0;}
+  [data-theme="light"]{--bg:#f0f2f8;--bg2:#ffffff;--bg3:#f5f7ff;--border:#e0e4f0;--accent:#3b7ef5;--accent2:#20c997;--accent3:#f06c2f;--danger:#e53935;--text:#1a1d2e;--text2:#5a6180;--text3:#9aa0bb;--shadow:0 4px 24px rgba(0,0,0,0.08);--toggle-bg:#e0e4f0;--sig-stroke:#1a1d2e;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;transition:background 0.3s,color 0.3s;}
+  #login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .login-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:48px 40px;width:380px;box-shadow:var(--shadow);}
+  .login-logo{font-size:28px;font-weight:600;margin-bottom:8px;}
+  .login-logo span{color:var(--accent);}
+  .login-sub{color:var(--text2);font-size:13px;margin-bottom:32px;}
+  .login-error{color:var(--danger);font-size:13px;margin-top:12px;text-align:center;display:none;}
+  .form-group{margin-bottom:16px;}
+  .form-group label{display:block;font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+  .form-group input,.form-group select,.form-group textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);}
+  .form-group select option{background:var(--bg3);color:var(--text);}
+  .form-group textarea{resize:vertical;min-height:70px;}
+  .btn-primary{width:100%;background:var(--accent);color:white;border:none;border-radius:8px;padding:13px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;transition:opacity 0.2s,transform 0.1s;}
+  .btn-primary:hover{opacity:0.9;transform:translateY(-1px);}
+  .btn-sm{background:var(--accent);color:white;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity 0.2s;white-space:nowrap;}
+  .btn-sm:hover{opacity:0.85;}
+  .btn-sm.danger{background:var(--danger);}
+  .btn-sm.green{background:var(--accent2);color:#0f1117;}
+  .btn-sm.orange{background:var(--accent3);color:white;}
+  .btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-icon{background:none;border:none;cursor:pointer;font-size:15px;color:var(--text3);transition:color 0.15s;padding:4px;}
+  .btn-icon:hover{color:var(--danger);}
+  .theme-toggle{background:var(--toggle-bg);border:none;border-radius:20px;padding:6px 12px;cursor:pointer;font-size:16px;}
+  #app{display:none;width:100%;}
+  .sidebar{width:240px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;}
+  .sidebar-logo{padding:20px;font-size:20px;font-weight:600;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;}
+  .sidebar-logo-text span{color:var(--accent);}
+  .sidebar-nav{flex:1;padding:16px 12px;}
+  .nav-section{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:12px 8px 6px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:14px;transition:all 0.15s;margin-bottom:2px;}
+  .nav-item:hover{background:var(--bg3);color:var(--text);}
+  .nav-item.active{background:rgba(79,142,247,0.12);color:var(--accent);font-weight:500;}
+  .nav-item .icon{font-size:16px;width:20px;text-align:center;}
+  .sidebar-user{padding:16px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;flex-shrink:0;}
+  .user-info{flex:1;min-width:0;}
+  .user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .user-role{font-size:11px;color:var(--text2);}
+  .logout-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;}
+  .logout-btn:hover{color:var(--danger);}
+  .main{margin-left:240px;flex:1;padding:32px;min-height:100vh;}
+  .page{display:none;}
+  .page.active{display:block;}
+  .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
+  .page-title{font-size:22px;font-weight:600;letter-spacing:-0.3px;}
+  .page-sub{font-size:13px;color:var(--text2);margin-top:2px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .stats-grid.cols-2{grid-template-columns:repeat(2,1fr);}
+  .stats-grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  /* NOTIFICATIONS */
+  .notif-popup{position:fixed;top:20px;right:20px;background:var(--bg2);border:1px solid var(--accent);border-radius:12px;padding:16px 20px;min-width:280px;max-width:340px;box-shadow:var(--shadow);z-index:600;animation:notifIn 0.3s ease;display:flex;gap:12px;align-items:flex-start;}
+  @keyframes notifIn{from{transform:translateY(-20px) scale(0.95);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+  .notif-popup.fait{border-color:var(--accent2);}
+  .notif-popup.message{border-color:var(--accent3);}
+  .notif-icon{font-size:22px;flex-shrink:0;margin-top:2px;}
+  .notif-content{flex:1;}
+  .notif-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
+  .notif-title.fait{color:var(--accent2);}
+  .notif-title.message{color:var(--accent3);}
+  .notif-body{font-size:13px;color:var(--text);line-height:1.4;}
+  .notif-time{font-size:11px;color:var(--text3);margin-top:4px;}
+  .notif-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0;flex-shrink:0;}
+  .notif-close:hover{color:var(--text);}
+  .notif-badge{position:absolute;top:-4px;right:-4px;background:var(--danger);color:white;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .nav-item-notif{position:relative;}
+  .stats-grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color 0.2s;}
+  .stat-card:hover{border-color:var(--accent);}
+  .stat-label{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+  .stat-value{font-size:28px;font-weight:600;letter-spacing:-0.5px;font-family:'DM Mono',monospace;}
+  .stat-value.blue{color:var(--accent);}
+  .stat-value.green{color:var(--accent2);}
+  .stat-value.orange{color:var(--accent3);}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .card-title{font-size:14px;font-weight:600;}
+  table{width:100%;border-collapse:collapse;}
+  th{padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+  td{padding:12px 20px;font-size:13px;border-bottom:1px solid var(--border);color:var(--text2);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--bg3);}
+  .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+  .badge-green{background:rgba(56,217,169,0.12);color:var(--accent2);}
+  .badge-blue{background:rgba(79,142,247,0.12);color:var(--accent);}
+  .badge-orange{background:rgba(247,127,79,0.12);color:var(--accent3);}
+  .badge-red{background:rgba(247,79,79,0.12);color:var(--danger);}
+  .badge-grey{background:rgba(85,89,112,0.2);color:var(--text3);}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .list-editor{padding:16px 20px;}
+  .list-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .list-item:last-child{border-bottom:none;}
+  .list-item span{flex:1;font-size:13px;color:var(--text);}
+  .add-item{display:flex;gap:10px;margin-top:12px;}
+  .add-item input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:200;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;width:680px;max-width:95vw;box-shadow:var(--shadow);max-height:92vh;overflow-y:auto;}
+  .modal.wide{width:920px;}
+  .modal h3{font-size:16px;font-weight:600;margin-bottom:20px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;}
+  .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text3);font-size:13px;gap:10px;}
+  .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .empty{text-align:center;padding:60px;color:var(--text3);font-size:13px;}
+  .mono{font-family:'DM Mono',monospace;font-size:12px;}
+  .annonce-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:12px;}
+  .annonce-meta{font-size:11px;color:var(--text3);margin-bottom:6px;}
+  .annonce-msg{font-size:14px;color:var(--text);}
+  .annonce-lectures{font-size:11px;color:var(--accent2);margin-top:6px;}
+  .profil-header{display:flex;align-items:center;gap:20px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px;}
+  .profil-avatar{width:64px;height:64px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:white;flex-shrink:0;}
+  .profil-info h2{font-size:20px;font-weight:600;}
+  .profil-info p{font-size:13px;color:var(--text2);margin-top:4px;}
+  .filter-input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;outline:none;width:140px;font-family:'DM Sans',sans-serif;}
+  .filter-select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;outline:none;font-family:'DM Sans',sans-serif;}
+  .tech-welcome{background:linear-gradient(135deg,rgba(79,142,247,0.15),rgba(56,217,169,0.08));border:1px solid var(--border);border-radius:16px;padding:28px 32px;margin-bottom:28px;}
+  .tech-welcome h2{font-size:20px;font-weight:600;margin-bottom:6px;}
+  .tech-welcome p{font-size:13px;color:var(--text2);}
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 24px;font-size:13px;font-weight:500;box-shadow:var(--shadow);z-index:500;opacity:0;transition:opacity 0.25s;pointer-events:none;white-space:nowrap;}
+  .toast.show{opacity:1;}
+  .toast.success{border-color:var(--accent2);color:var(--accent2);}
+  .toast.error{border-color:var(--danger);color:var(--danger);}
+  .annonce-popup{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--accent);border-radius:12px;padding:20px 24px;width:320px;box-shadow:var(--shadow);z-index:300;animation:slideIn 0.3s ease;}
+  @keyframes slideIn{from{transform:translateX(120%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+  .annonce-popup-title{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px;}
+  .annonce-popup-msg{font-size:13px;color:var(--text);line-height:1.5;}
+  .annonce-popup-actions{display:flex;justify-content:flex-end;margin-top:12px;}
+  .photos-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+  .photos-col{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;}
+  .photos-col-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+  .photos-col-title.avant{color:var(--danger);}
+  .photos-col-title.apres{color:var(--accent2);}
+  .photo-add-btns{display:flex;gap:6px;margin-bottom:8px;}
+  .photo-add-btn{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:7px;font-size:11px;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;}
+  .photo-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .photos-mini-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;min-height:64px;}
+  .photo-thumb{position:relative;border-radius:6px;overflow:hidden;aspect-ratio:1;}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;cursor:pointer;}
+  .photo-thumb .rm{position:absolute;top:3px;right:3px;background:rgba(247,79,79,0.9);color:white;border:none;border-radius:50%;width:16px;height:16px;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .photos-empty{grid-column:1/-1;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);border:2px dashed var(--border);border-radius:6px;min-height:56px;}
+  .sig-wrapper{border:2px dashed var(--border);border-radius:10px;overflow:hidden;transition:border-color 0.2s;background:#fff;}
+  .sig-wrapper.signed{border:2px solid var(--accent2);}
+  .sig-wrapper canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none;background:#fff;}
+  .sig-toolbar{display:flex;gap:8px;margin-top:8px;align-items:center;}
+  .sig-status{flex:1;font-size:12px;color:var(--text3);}
+  .sig-status.ok{color:var(--accent2);font-weight:500;}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:700;display:none;align-items:center;justify-content:center;}
+  .lightbox.open{display:flex;}
+  .lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;object-fit:contain;}
+  .lightbox-close{position:absolute;top:20px;right:24px;background:none;border:none;color:white;font-size:28px;cursor:pointer;opacity:0.7;}
+  .pdf-link{display:inline-flex;align-items:center;gap:5px;background:rgba(56,217,169,0.12);color:var(--accent2);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;text-decoration:none;}
+  .pdf-alert{background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;}
+  .pdf-alert-icon{font-size:20px;flex-shrink:0;}
+  .pdf-alert-text{flex:1;font-size:13px;color:var(--text2);}
+  .pdf-alert-text strong{color:var(--text);display:block;margin-bottom:2px;}
+  .camera-overlay{position:fixed;inset:0;background:#000;z-index:800;display:none;flex-direction:column;align-items:center;justify-content:center;}
+  .camera-overlay.open{display:flex;}
+  #camera-video{width:100%;max-width:640px;border-radius:8px;}
+  .camera-controls{display:flex;gap:16px;margin-top:20px;}
+  .camera-snap{background:white;border:none;border-radius:50%;width:64px;height:64px;font-size:28px;cursor:pointer;}
+  .camera-cancel{background:rgba(255,255,255,0.15);border:none;color:white;border-radius:8px;padding:10px 20px;font-size:14px;cursor:pointer;}
+  .photo-viewer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;}
+  .photo-viewer-thumb{border-radius:8px;overflow:hidden;aspect-ratio:1;cursor:pointer;transition:transform 0.15s;}
+  .photo-viewer-thumb:hover{transform:scale(1.04);}
+  .photo-viewer-thumb img{width:100%;height:100%;object-fit:cover;}
+  .api-error-box{background:rgba(247,79,79,0.07);border:1px solid rgba(247,79,79,0.25);border-radius:8px;padding:14px 16px;font-size:12px;color:var(--text2);}
+  .api-error-box code{background:var(--bg3);border-radius:4px;padding:2px 6px;font-family:'DM Mono',monospace;font-size:11px;}
+</style>
+</head>
+<body>
+    {% block content %}{% endblock %}
+
+    <!-- Script pour le bouton "Installer l'app" -->
+    <script>
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('btn-install').style.display = 'block';
+        });
+
+        function installerApp() {
+            deferredPrompt.prompt();
+        }
+    </script>
+<div class="toast" id="toast"></div>
+
+<div class="camera-overlay" id="camera-overlay">
+  <video id="camera-video" autoplay playsinline muted></video>
+  <canvas id="camera-canvas" style="display:none"></canvas>
+  <div class="camera-controls">
+    <button class="camera-snap" id="camera-snap-btn">📷</button>
+    <button class="camera-cancel" onclick="closeCamera()">Annuler</button>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div class="login-logo">OME<span>GA</span></div>
+      <button class="theme-toggle" onclick="toggleTheme()" id="login-theme-btn">🌙</button>
+    </div>
+    <div class="login-sub">Gestion des interventions terrain</div>
+    <div class="form-group"><label>Nom d'utilisateur</label><input type="text" id="login-username" /></div>
+    <div class="form-group"><label>Mot de passe</label><input type="password" id="login-password" /></div>
+    <button class="btn-primary" onclick="doLogin()">Connexion</button>
+    <div class="login-error" id="login-error">Identifiants incorrects.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">OME<span>GA</span></div>
+      <button class="theme-toggle" onclick="toggleTheme()" id="app-theme-btn">🌙</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Tableau de bord</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">📊</span> Dashboard</div>
+      
+      <!-- ✅ NOUVEAU : Gestion gasoil (visible par tous) -->
+      <div class="nav-section">💰 Gestion carburant</div>
+      <div class="nav-item" onclick="showPage('gasoil',this);loadGasoilHistory()">
+        <span class="icon">⛽</span> Mon gasoil
+      </div>
+      
+      <div class="nav-section">Gestion</div>
+      <div class="nav-item" onclick="showPage('interventions',this)"><span class="icon">🔧</span> Interventions</div>
+      <div class="nav-item admin-nav" onclick="showPage('techniciens',this)"><span class="icon">👷</span> Techniciens</div>
+      <div class="nav-item admin-nav" onclick="showPage('baremes',this)"><span class="icon">💶</span> Barèmes</div>
+      <div class="nav-item" onclick="showPage('constats',this);loadConstats()">
+        <span class="icon">📋</span> Constats
+        <span id="badge-soumis" style="display:none;background:var(--danger);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">!</span>
+      </div>
+      
+      <div class="nav-section admin-nav">Configuration</div>
+      <div class="nav-item admin-nav" onclick="showPage('listes',this)"><span class="icon">📝</span> Listes</div>
+      
+      <div class="nav-section admin-nav">Communication</div>
+      <div class="nav-item admin-nav" onclick="showPage('annonces',this)"><span class="icon">📢</span> Annonces (globales)</div>
+      <div class="nav-item admin-nav nav-item-notif" onclick="showPage('annonces-privees',this);loadAnnoncesPrivees();clearAdminNotifBadge()"><span class="icon">🔒</span> Annonces privées<span id="badge-admin-notif" style="display:none;background:var(--accent3);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">!</span></div>
+      
+      <!-- ✅ NOUVEAU : Gestion admin avec Rapport gasoil -->
+      <div class="nav-section admin-nav">Gestion admin</div>
+      <div class="nav-item admin-nav" onclick="showPage('factures',this)"><span class="icon">🧾</span> Factures</div>
+      <div class="nav-item admin-nav" onclick="showPage('reclamations',this)"><span class="icon">📞</span> Réclamations</div>
+      <div class="nav-item admin-nav" onclick="showPage('admin-gasoil',this);loadAdminGasoil()">
+        <span class="icon">⛽</span> Rapport gasoil
+      </div>
+      
+      <div class="nav-section admin-nav">Exports</div>
+      <div class="nav-item admin-nav" onclick="exportFichier('excel')"><span class="icon">📥</span> Export Excel</div>
+      <div class="nav-item admin-nav" onclick="exportFichier('pdf')"><span class="icon">📄</span> Export PDF</div>
+      
+      <div class="nav-section tech-nav">Communication</div>
+      <div class="nav-item tech-nav nav-item-notif" onclick="showPage('annonces-tech',this);loadAnnoncesTech();clearTechNotifBadge()"><span class="icon">📢</span> Mes annonces<span id="badge-tech-notif" style="display:none;background:var(--accent3);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">!</span></div>
+      
+      <div class="nav-section">Mon compte</div>
+      <div class="nav-item" onclick="showPage('profil',this);loadProfil()"><span class="icon">👤</span> Mon profil</div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="avatar" id="user-avatar">A</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Admin</div>
+        <div class="user-role" id="user-role-label">Administrateur</div>
+      </div>
+      <button class="logout-btn" onclick="logout()">⏻</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+   <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div><div class="page-title">Dashboard</div><div class="page-sub" id="dashboard-periode">Ce mois</div></div>
+        <button class="btn-outline" onclick="loadDashboard()">↻ Actualiser</button>
+      </div>
+      <!-- Visible seulement sur mobile, caché par défaut -->
+<button id="btn-install" 
+        onclick="installerApp()" 
+        style="display:none;">
+    📱 Installer l'application
+</button>
+      <div class="tech-welcome" id="tech-welcome" style="display:none">
+        <h2 id="tech-welcome-name">Bonjour 👋</h2>
+        <p>Voici un résumé de vos activités. Bonne journée sur le terrain !</p>
+      </div>
+      <div class="stats-grid" id="stats-admin">
+        <div class="stat-card"><div class="stat-label">Chiffre d'affaires</div><div class="stat-value blue" id="stat-ca">—</div></div>
+        <div class="stat-card"><div class="stat-label">Coûts techniciens</div><div class="stat-value orange" id="stat-cout">—</div></div>
+        <div class="stat-card"><div class="stat-label">Marge brute</div><div class="stat-value green" id="stat-marge">—</div></div>
+        <div class="stat-card"><div class="stat-label">Interventions</div><div class="stat-value" id="stat-nb">—</div></div>
+      </div>
+      <div class="stats-grid cols-3" id="stats-tech" style="display:none">
+        <div class="stat-card"><div class="stat-label">Mes interventions</div><div class="stat-value blue" id="stat-tech-nb">—</div></div>
+        <div class="stat-card"><div class="stat-label">Mes constats</div><div class="stat-value" id="stat-tech-constats">—</div></div>
+        <div class="stat-card" style="border-color:rgba(56,217,169,0.3)"><div class="stat-label" id="label-tech-gains">💰 Gains ce mois</div><div class="stat-value green" id="stat-tech-gains">—</div></div>
+      </div>
+      <div class="card" id="admin-perf-card">
+        <div class="card-header"><div class="card-title">Performance par technicien</div></div>
+        <div id="tech-table-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+      </div>
+      
+      <div class="card" id="admin-pdf-card" style="display:none">
+        <div class="card-header">
+          <div class="card-title">📄 PDFs soumis — en attente</div>
+          <button class="btn-outline" onclick="loadPdfPending()">↻</button>
+        </div>
+        
+        <div id="admin-pdf-body"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      
+      
+      
+      <div class="card" id="tech-recent-card" style="display:none">
+        <div class="card-header">
+          <div class="card-title">Mes dernières interventions</div>
+          <button class="btn-sm" onclick="openNewInterventionModal()">+ Nouvelle</button>
+        </div>
+        <div id="tech-recent-body"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+
+
+
+<!-- PAGE GASOIL (pour les techniciens) -->
+<div class="page" id="page-gasoil">
+  <div class="page-header">
+    <div>
+      <div class="page-title">⛽ Gestion du gasoil</div>
+      <div class="page-sub" id="gasoil-subtitle">Enregistrez vos pleins quotidiens</div>
+    </div>
+    <button class="btn-outline" onclick="loadGasoilHistory()">↻ Actualiser</button>
+  </div>
+  
+  <!-- Formulaire d'ajout -->
+  <div class="card" id="gasoil-add-card">
+    <div class="card-header"><div class="card-title">📝 Ajouter un plein</div></div>
+    <div style="padding:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:16px;align-items:end">
+        <div class="form-group" style="margin:0">
+          <label>Date</label>
+          <input type="date" id="gasoil-date" />
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Montant (€)</label>
+          <input type="number" id="gasoil-montant" step="0.01" placeholder="Ex: 45.50" />
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Kilométrage</label>
+          <input type="number" id="gasoil-km" step="1" placeholder="Ex: 12500" />
+        </div>
+        <button class="btn-sm green" onclick="ajouterGasoil()" style="height:42px">✅ Enregistrer</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Historique -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📋 Historique des pleins</div>
+      <div class="card-title" id="total-gasoil-mois" style="color:var(--accent2)">Total mois: 0.00 €</div>
+    </div>
+    <div id="gasoil-history-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+  </div>
+</div>
+
+<!-- PAGE ADMIN GASOIL (pour l'admin) -->
+<div class="page" id="page-admin-gasoil">
+  <div class="page-header">
+    <div>
+      <div class="page-title">⛽ Rapport gasoil par technicien</div>
+      <div class="page-sub">Suivi quotidien des dépenses de carburant</div>
+    </div>
+    <button class="btn-outline" onclick="loadAdminGasoil()">↻ Actualiser</button>
+  </div>
+  
+  <!-- Filtre -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📅 Filtre par période</div>
+      <div style="display:flex;gap:12px">
+        <input type="month" id="admin-gasoil-mois" class="filter-input" />
+        <button class="btn-sm" onclick="loadAdminGasoil()">Filtrer</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Tableau récapitulatif -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">📊 Dépenses gasoil par technicien</div></div>
+    <div id="admin-gasoil-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+  </div>
+  
+  <!-- Détail quotidien -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">📋 Détail quotidien par technicien</div></div>
+    <div id="admin-gasoil-detail-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+  </div>
+</div>
+  
+
+<!-- INTERVENTIONS -->
+    <div class="page" id="page-interventions">
+      <div class="page-header">
+        <div><div class="page-title">Interventions</div><div class="page-sub">Toutes les interventions terrain</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm" onclick="openNewInterventionModal()">+ Nouvelle</button>
+          <button class="btn-outline" onclick="loadInterventions()">↻ Actualiser</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Liste</div>
+          <div style="display:flex;gap:8px">
+            <input class="filter-input" id="filter-ticket" placeholder="N° ticket...">
+            <button class="btn-outline" onclick="loadInterventions()">Filtrer</button>
+          </div>
+        </div>
+        <div id="interventions-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+      </div>
+    </div>
+
+    
+<!-- TECHNICIENS -->
+<div class="page" id="page-techniciens">
+  <div class="page-header">
+    <div><div class="page-title">Techniciens</div><div class="page-sub">Gestion des comptes</div></div>
+    <button class="btn-sm" onclick="openModal('modal-tech')">+ Ajouter</button>
+  </div>
+  <div class="card">
+    <div id="techniciens-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+  </div>
+</div>
+
+    <!-- BAREMES -->
+    <div class="page" id="page-baremes">
+      <div class="page-header"><div><div class="page-title">Barèmes</div><div class="page-sub">Double tarification</div></div></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💰 Rémunération Techniciens</div>
+            <button class="btn-sm" onclick="openModal('modal-bareme-tech')">+ Ajouter</button>
+          </div>
+          <div id="baremes-tech-body"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏢 Facturation Opérateurs</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="filter-select" id="filter-operateur" onchange="loadBaremesOp()"><option value="">Tous</option></select>
+              <button class="btn-sm" onclick="openModal('modal-bareme-op')">+ Ajouter</button>
+            </div>
+          </div>
+          <div id="baremes-op-body"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSTATS -->
+    <div class="page" id="page-constats">
+      <div class="page-header">
+        <div><div class="page-title">Constats</div><div class="page-sub">Photos avant/après + signature client + PDF vers admin</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm green" onclick="openModal('modal-nouveau-constat')">+ Nouveau constat</button>
+          <button class="btn-outline" onclick="loadConstats()">↻ Actualiser</button>
+        </div>
+      </div>
+      <div class="card">
+        <div id="constats-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+      </div>
+    </div>
+
+    <!-- LISTES -->
+    <div class="page" id="page-listes">
+      <div class="page-header"><div><div class="page-title">Listes</div><div class="page-sub">Alimente les menus de l'application</div></div></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📡 Opérateurs</div></div>
+          <div class="list-editor" id="operateurs-list"></div>
+          <div style="padding:0 20px 16px"><div class="add-item">
+            <input type="text" id="new-operateur" placeholder="Nouvel opérateur..." />
+            <button class="btn-sm" onclick="addOperateur()">+</button>
+          </div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🔧 Types d'intervention</div></div>
+          <div class="list-editor" id="types-list"></div>
+          <div style="padding:0 20px 16px"><div class="add-item">
+            <input type="text" id="new-type" placeholder="Nouveau type..." />
+            <button class="btn-sm" onclick="addType()">+</button>
+          </div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🚦 Statuts</div></div>
+          <div class="list-editor" id="statuts-list"></div>
+          <div style="padding:0 20px 16px"><div class="add-item">
+            <input type="text" id="new-statut" placeholder="Nouveau statut..." />
+            <button class="btn-sm" onclick="addStatut()">+</button>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANNONCES ADMIN (globales) -->
+    <div class="page" id="page-annonces">
+      <div class="page-header"><div><div class="page-title">Annonces globales</div><div class="page-sub">Messages à tous les techniciens</div></div></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📨 Nouvelle annonce (tous)</div></div>
+          <div style="padding:20px">
+            <div class="form-group"><label>Message</label>
+              <textarea id="annonce-message" placeholder="Ex: N'oubliez pas de synchroniser avant 18h..."></textarea>
+            </div>
+            <button class="btn-sm green" onclick="envoyerAnnonce()" style="width:100%">📢 Envoyer à tous</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📋 Historique</div><button class="btn-outline" onclick="loadAnnonces()">↻</button></div>
+          <div id="annonces-body"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANNONCES PRIVÉES (admin — envoi) -->
+    <div class="page" id="page-annonces-privees">
+      <div class="page-header">
+        <div><div class="page-title">Annonces privées</div><div class="page-sub">Messages individuels aux techniciens</div></div>
+        <button class="btn-outline" onclick="loadAnnoncesPrivees()">↻</button>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">✉️ Envoyer à un technicien</div></div>
+          <div style="padding:20px">
+            <div class="form-group"><label>Technicien destinataire</label>
+              <select id="annonce-destinataire"></select>
+            </div>
+            <div class="form-group"><label>Message</label>
+              <textarea id="annonce-privee-message" placeholder="Message personnel..."></textarea>
+            </div>
+            <button id="btn-envoyer-privee" class="btn-sm orange" onclick="envoyerAnnoncePrivee()" style="width:100%">📨 Envoyer en privé</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📋 Historique des envois</div></div>
+          <div id="annonces-privees-body"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANNONCES POUR TECHNICIEN (lecture seulement) -->
+    <div class="page" id="page-annonces-tech">
+      <div class="page-header">
+        <div><div class="page-title">Mes annonces</div><div class="page-sub">Messages de l'administrateur</div></div>
+        <button class="btn-outline" onclick="loadAnnoncesTech()">↻</button>
+      </div>
+      <div id="annonces-tech-body"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- FACTURES -->
+    <div class="page" id="page-factures">
+      <div class="page-header">
+        <div><div class="page-title">Factures</div><div class="page-sub">Gestion des factures</div></div>
+        <button class="btn-sm" onclick="openModal('modal-facture')">+ Nouvelle facture</button>
+      </div>
+      <div class="card">
+        <div id="factures-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+      </div>
+    </div>
+
+    <!-- RÉCLAMATIONS -->
+    <div class="page" id="page-reclamations">
+      <div class="page-header">
+        <div><div class="page-title">Réclamations</div><div class="page-sub">Gestion des réclamations clients</div></div>
+        <button class="btn-sm" onclick="openModal('modal-reclamation')">+ Nouvelle réclamation</button>
+      </div>
+      <div class="card">
+        <div id="reclamations-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+      </div>
+    </div>
+
+<!-- PROFIL -->
+<div class="page" id="page-profil">
+  <div class="page-header">
+    <div><div class="page-title">Mon Profil</div></div>
+  </div>
+  
+  <!-- ✅ EN-TÊTE DU PROFIL avec matricule et gasoil -->
+  <div class="profil-header">
+    <div class="profil-avatar" id="profil-avatar">A</div>
+    <div class="profil-info">
+      <h2 id="profil-fullname">—</h2>
+      <p id="profil-username-display">—</p>
+      <span class="badge badge-orange" id="profil-role-badge" style="margin-top:8px">—</span>
+      
+      <!-- ✅ Affichage de la matricule et du gasoil -->
+      <div style="margin-top: 16px; display: flex; gap: 20px; flex-wrap: wrap;">
+        <div style="background: var(--bg3); padding: 8px 16px; border-radius: 20px;">
+          <span style="font-size: 14px;">🚗</span>
+          <span style="font-size: 12px; color: var(--text2);">Matricule :</span>
+          <strong id="profil-matricule" style="font-size: 14px; margin-left: 6px;">—</strong>
+        </div>
+        <div style="background: var(--bg3); padding: 8px 16px; border-radius: 20px;">
+          <span style="font-size: 14px;">⛽</span>
+          <span style="font-size: 12px; color: var(--text2);">Gasoil mensuel :</span>
+          <strong id="profil-gasoil" style="font-size: 14px; margin-left: 6px;">—</strong>
+        </div>
+        <div style="background: var(--bg3); padding: 8px 16px; border-radius: 20px;">
+  <span style="font-size: 14px;">🔗</span>
+  <span style="font-size: 12px; color: var(--text2);">Drive :</span>
+  <span id="profil-drive-container">
+    <strong id="profil-drive" style="font-size: 14px; margin-left: 6px;">—</strong>
+  </span>
+</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">📋 Mes informations</div></div>
+      <div style="padding:20px">
+        <div class="form-group"><label>Prénom</label><input type="text" id="profil-prenom" /></div>
+        <div class="form-group"><label>Nom</label><input type="text" id="profil-nom" /></div>
+        <div class="form-group"><label>Email</label><input type="email" id="profil-email" /></div>
+        <div class="form-group"><label>Téléphone</label><input type="text" id="profil-tel" /></div>
+        <button class="btn-sm" onclick="saveProfil()" style="width:100%">💾 Enregistrer</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">🔑 Changer le mot de passe</div></div>
+      <div style="padding:20px">
+        <div class="form-group"><label>Ancien mot de passe</label><input type="password" id="profil-ancien-mdp" /></div>
+        <div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="profil-nouveau-mdp" /></div>
+        <div class="form-group"><label>Confirmer</label><input type="password" id="profil-confirm-mdp" /></div>
+        <button class="btn-sm orange" onclick="saveNewPassword()" style="width:100%">🔐 Modifier</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ══════════ MODALS ══════════ -->
+
+<div class="modal-overlay" id="modal-facture">
+  <div class="modal">
+    <h3>🧾 Nouvelle facture</h3>
+    <div class="form-group"><label>Date *</label><input type="date" id="facture-date" /></div>
+    <div class="form-group"><label>Numéro *</label><input type="text" id="facture-numero" placeholder="Ex: INV-2024-001" /></div>
+    <div class="form-group"><label>Statut</label>
+      <select id="facture-statut">
+        <option value="paye">✅ Payé</option><option value="reussi">💰 Réussi</option>
+        <option value="en_attente">⏳ En attente</option><option value="impaye">❌ Impayé</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Montant (€)</label><input type="number" id="facture-montant" step="0.01" /></div>
+    <div class="form-group"><label>Commentaire</label><textarea id="facture-commentaire" placeholder="Optionnel..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-facture')">Annuler</button>
+      <button class="btn-sm" onclick="saveFacture()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-reclamation">
+  <div class="modal">
+    <h3>📞 Nouvelle réclamation</h3>
+    <div class="form-group"><label>Date *</label><input type="date" id="reclamation-date" /></div>
+    <div class="form-group"><label>Numéro *</label><input type="text" id="reclamation-numero" placeholder="Ex: REC-2024-001" /></div>
+    <div class="form-group"><label>Statut</label>
+      <select id="reclamation-statut">
+        <option value="envoye">📨 Envoyé</option><option value="en_cours">🔄 En cours</option>
+        <option value="traite">✅ Traité</option><option value="rejete">❌ Rejeté</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Description</label><textarea id="reclamation-description" placeholder="Motif..."></textarea></div>
+    <div class="form-group"><label>Client / Intervention (optionnel)</label><input type="text" id="reclamation-client" /></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-reclamation')">Annuler</button>
+      <button class="btn-sm" onclick="saveReclamation()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-facture">
+  <div class="modal">
+    <h3>✏️ Modifier la facture</h3>
+    <input type="hidden" id="edit-facture-id" />
+    <div class="form-group"><label>Date</label><input type="date" id="edit-facture-date" /></div>
+    <div class="form-group"><label>Numéro</label><input type="text" id="edit-facture-numero" /></div>
+    <div class="form-group"><label>Statut</label>
+      <select id="edit-facture-statut">
+        <option value="paye">✅ Payé</option><option value="reussi">💰 Réussi</option>
+        <option value="en_attente">⏳ En attente</option><option value="impaye">❌ Impayé</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Montant (€)</label><input type="number" id="edit-facture-montant" step="0.01" /></div>
+    <div class="form-group"><label>Commentaire</label><textarea id="edit-facture-commentaire"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-edit-facture')">Annuler</button>
+      <button class="btn-sm" onclick="updateFacture()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-reclamation">
+  <div class="modal">
+    <h3>✏️ Modifier la réclamation</h3>
+    <input type="hidden" id="edit-reclamation-id" />
+    <div class="form-group"><label>Date</label><input type="date" id="edit-reclamation-date" /></div>
+    <div class="form-group"><label>Numéro</label><input type="text" id="edit-reclamation-numero" /></div>
+    <div class="form-group"><label>Statut</label>
+      <select id="edit-reclamation-statut">
+        <option value="envoye">📨 Envoyé</option><option value="en_cours">🔄 En cours</option>
+        <option value="traite">✅ Traité</option><option value="rejete">❌ Rejeté</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Description</label><textarea id="edit-reclamation-description"></textarea></div>
+    <div class="form-group"><label>Client / Intervention</label><input type="text" id="edit-reclamation-client" /></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-edit-reclamation')">Annuler</button>
+      <button class="btn-sm" onclick="updateReclamation()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-nouveau-constat">
+  <div class="modal wide">
+    <h3>📋 Nouveau Constat</h3>
+    <div style="background:rgba(56,217,169,0.08);border:1px solid rgba(56,217,169,0.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);">
+      📸 <strong style="color:var(--text)">Flux :</strong> Photos <strong style="color:var(--danger)">AVANT</strong> → Intervention → Photos <strong style="color:var(--accent2)">APRÈS</strong> → Signature → PDF envoyé à l'admin.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="form-group" style="margin:0">
+        <label>N° d'Intervention (optionnel)</label>
+        <input type="number" id="constat-intervention-id" placeholder="Ex: 42" />
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Catégorie *</label>
+        <select id="constat-categorie">
+          <option value="">— Choisir —</option>
+          <option value="litige_client">Litige client</option>
+          <option value="litige_operateur">Litige opérateur</option>
+          <option value="probleme_materiel">Problème matériel</option>
+          <option value="incident_terrain">Incident terrain</option>
+          <option value="client_absent">Client absent</option>
+          <option value="acces_refuse">Accès refusé</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="constat-description" placeholder="Décrivez la situation..." style="min-height:60px"></textarea>
+    </div>
+    <div class="photos-cols">
+      <div class="photos-col">
+        <div class="photos-col-title avant">🔴 Photos AVANT <span id="count-avant" style="font-size:10px;font-weight:400;color:var(--text3);margin-left:4px">0</span></div>
+        <div class="photo-add-btns">
+          <button class="photo-add-btn" type="button" onclick="openCamera('avant')">📷 Caméra</button>
+          <label class="photo-add-btn" style="cursor:pointer">
+            🖼️ Galerie
+            <input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'avant')">
+          </label>
+        </div>
+        <div id="photos-grid-avant" class="photos-mini-grid"><div class="photos-empty">Aucune photo avant</div></div>
+      </div>
+      <div class="photos-col">
+        <div class="photos-col-title apres">🟢 Photos APRÈS <span id="count-apres" style="font-size:10px;font-weight:400;color:var(--text3);margin-left:4px">0</span></div>
+        <div class="photo-add-btns">
+          <button class="photo-add-btn" type="button" onclick="openCamera('apres')">📷 Caméra</button>
+          <label class="photo-add-btn" style="cursor:pointer">
+            🖼️ Galerie
+            <input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'apres')">
+          </label>
+        </div>
+        <div id="photos-grid-apres" class="photos-mini-grid"><div class="photos-empty">Aucune photo après</div></div>
+      </div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">
+        ✍️ Signature client <span style="font-weight:400;text-transform:none;color:var(--text3);font-size:11px">(optionnel)</span>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Nom du signataire</label>
+        <input type="text" id="constat-signataire" placeholder="Prénom et nom du client" />
+      </div>
+      <div class="sig-wrapper" id="sig-wrapper">
+        <canvas id="sig-canvas"></canvas>
+      </div>
+      <div class="sig-toolbar">
+        <span class="sig-status" id="sig-status">✏️ Le client signe ici</span>
+        <button class="btn-outline" onclick="clearSignature()" style="padding:5px 10px;font-size:11px">🗑 Effacer</button>
+      </div>
+    </div>
+    <div id="constat-error" style="display:none;background:rgba(247,79,79,0.1);border:1px solid var(--danger);border-radius:8px;padding:12px;font-size:13px;color:var(--danger);margin-bottom:12px"></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-nouveau-constat');clearConstatForm()">Annuler</button>
+      <button class="btn-sm green" id="constat-submit-btn" onclick="saveConstat()">📤 Enregistrer + Envoyer à l'admin</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-voir-photos">
+  <div class="modal wide">
+    <h3 id="voir-photos-title">📷 Photos du constat</h3>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔴 Avant</div>
+      <div id="voir-avant-grid" class="photo-viewer-grid"></div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🟢 Après</div>
+      <div id="voir-apres-grid" class="photo-viewer-grid"></div>
+    </div>
+    <div class="modal-actions"><button class="btn-outline" onclick="closeModal('modal-voir-photos')">Fermer</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-gerer-constat">
+  <div class="modal">
+    <h3 id="gerer-titre">Gérer le constat</h3>
+    <input type="hidden" id="gerer-constat-id">
+    <div id="gerer-pdf-zone" style="margin-bottom:16px"></div>
+    <div class="form-group">
+      <label>Commentaire <span style="color:var(--danger)">*obligatoire pour rejeter</span></label>
+      <textarea id="gerer-commentaire" placeholder="Votre commentaire..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-gerer-constat')">Annuler</button>
+      <button class="btn-sm danger" onclick="gererConstat('rejeter')">❌ Rejeter</button>
+      <button class="btn-sm green" onclick="gererConstat('valider')">✅ Valider</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-nouvelle-intervention">
+  <div class="modal">
+    <h3>🔧 Nouvelle Intervention</h3>
+    <div class="form-group"><label>Date *</label><input type="date" id="nv-date" /></div>
+    <div class="form-group"><label>N° de Ticket *</label><input type="text" id="nv-ticket" placeholder="Ex: TK-001" /></div>
+    <div class="form-group"><label>Opérateur</label><select id="nv-operateur"><option value="">— Choisir —</option></select></div>
+    <div class="form-group"><label>Type d'intervention</label><select id="nv-type"><option value="">— Choisir —</option></select></div>
+    <div class="form-group"><label>Statut</label><select id="nv-statut"><option value="">— Choisir —</option></select></div>
+    <div class="form-group"><label>Commentaire</label><textarea id="nv-commentaire" placeholder="Observations..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-nouvelle-intervention');clearInterventionForm()">Annuler</button>
+      <button class="btn-sm" onclick="saveNewIntervention()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-tech">
+  <div class="modal">
+    <h3>➕ Ajouter un utilisateur</h3>
+    <div class="form-group"><label>Nom d'utilisateur *</label><input type="text" id="tech-username" placeholder="ex: john.doe" /></div>
+    <div class="form-group"><label>Prénom</label><input type="text" id="tech-firstname" /></div>
+    <div class="form-group"><label>Nom</label><input type="text" id="tech-lastname" /></div>
+    <div class="form-group"><label>Email</label><input type="email" id="tech-email" /></div>
+    <div class="form-group"><label>Téléphone</label><input type="text" id="tech-tel" /></div>
+    
+    <!-- ✅ NOUVEAUX CHAMPS -->
+    <div class="form-group">
+      <label>🚗 Matricule voiture</label>
+      <input type="text" id="tech-matricule" placeholder="Ex: AB-123-CD" />
+    </div>
+    <div class="form-group">
+      <label>⛽ Gasoil mensuel (€)</label>
+      <input type="number" id="tech-gasoil" step="0.01" placeholder="Ex: 150.00" />
+    </div>
+    <div class="form-group">
+  <label>🔗 Lien Google Drive</label>
+  <input type="url" id="tech-drive" placeholder="https://drive.google.com/..." />
+  <small style="font-size:10px;color:var(--text3)">Lien vers le dossier Drive du technicien</small>
+</div>
+    <div class="form-group"><label>Rôle</label>
+      <select id="tech-role">
+        <option value="technicien">Technicien</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Mot de passe *</label><input type="password" id="tech-password" placeholder="Min 8 caractères" /></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-tech')">Annuler</button>
+      <button class="btn-sm" onclick="createTechnicien()">✅ Créer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-user">
+  <div class="modal">
+    <h3>✏️ Modifier l'utilisateur</h3>
+    <input type="hidden" id="edit-user-id" />
+    <div class="form-group"><label>Prénom</label><input type="text" id="edit-firstname" /></div>
+    <div class="form-group"><label>Nom</label><input type="text" id="edit-lastname" /></div>
+    <div class="form-group"><label>Email</label><input type="email" id="edit-email" /></div>
+    <div class="form-group"><label>Téléphone</label><input type="text" id="edit-tel" /></div>
+    
+    <!-- ✅ NOUVEAUX CHAMPS : Matricule et Gasoil (modifiables par l'admin) -->
+    <div class="form-group">
+      <label>🚗 Matricule voiture</label>
+      <input type="text" id="edit-matricule" placeholder="Ex: AB-123-CD" />
+      <small style="font-size:10px;color:var(--text3)">Ex: AB-123-CD, 1234-TN-56, etc.</small>
+    </div>
+    <div class="form-group">
+      <label>⛽ Gasoil mensuel (€)</label>
+      <input type="number" id="edit-gasoil" step="0.01" placeholder="Ex: 150.00" />
+      <small style="font-size:10px;color:var(--text3)">Montant forfaitaire mensuel pour le gasoil</small>
+    </div>
+    <div class="form-group">
+  <label>🔗 Lien Google Drive</label>
+  <input type="url" id="edit-drive" placeholder="https://drive.google.com/..." />
+  <small style="font-size:10px;color:var(--text3)">Lien vers le dossier Drive du technicien</small>
+</div>
+    <div class="form-group"><label>Rôle</label>
+      <select id="edit-role">
+        <option value="technicien">Technicien</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-edit-user')">Annuler</button>
+      <button class="btn-sm" onclick="saveEditUser()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-bareme-tech">
+  <div class="modal">
+    <h3>💰 Barème technicien</h3>
+    <div class="form-group"><label>Type d'intervention</label><select id="bt-type"></select></div>
+    <div class="form-group"><label>Prix (€)</label><input type="number" id="bt-prix" step="0.01" min="0" /></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-bareme-tech')">Annuler</button>
+      <button class="btn-sm" onclick="saveBaremeTech()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-bareme-op">
+  <div class="modal">
+    <h3>🏢 Barème opérateur</h3>
+    <div class="form-group"><label>Type d'intervention</label><select id="bo-type"></select></div>
+    <div class="form-group"><label>Opérateur</label><select id="bo-op"></select></div>
+    <div class="form-group"><label>Prix (€)</label><input type="number" id="bo-prix" step="0.01" min="0" /></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-bareme-op')">Annuler</button>
+      <button class="btn-sm" onclick="saveBaremeOp()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════ CONFIG ══════════════════════ */
+const API = 'http://127.0.0.1:8000/api';
+let token = localStorage.getItem('omega_token') || '';
+let currentUser = null;
+let cameraStream = null, cameraCtx = null;
+const constatPhotos = { avant: [], apres: [] };
+let factures = [];
+let reclamations = [];
+let sigCanvas, sigCtx, sigDrawing = false, sigHasData = false;
+
+/* ══ THEME ══════════════════════════════════════════ */
+function toggleTheme() {
+  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('omega_theme', t);
+  updateThemeIcons(t);
+}
+function updateThemeIcons(t) {
+  const icon = t === 'light' ? '☀️' : '🌙';
+  ['login-theme-btn','app-theme-btn'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=icon; });
+}
+const savedTheme = localStorage.getItem('omega_theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+window.addEventListener('load', () => {
+  updateThemeIcons(savedTheme);
+  initSignature();
+  loadFacturesFromStorage();
+  loadReclamationsFromStorage();
+});
+
+/* ══ TOAST ══════════════════════════════════════════ */
+function toast(msg, type='success', dur=3500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${type} show`;
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+/* ══ AUTH ════════════════════════════════════════════ */
+async function doLogin() {
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  try {
+    const res = await fetch(`${API}/auth/login/`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    if (!res.ok) throw new Error();
+    token = (await res.json()).access;
+    localStorage.setItem('omega_token', token);
+    await startApp();
+  } catch { document.getElementById('login-error').style.display = 'block'; }
+}
+async function startApp() {
+  currentUser = await apiFetch('/auth/me/');
+  const name = currentUser.first_name || currentUser.username;
+  const isAdmin = currentUser.role === 'admin';
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  document.getElementById('user-role-label').textContent = isAdmin ? 'Administrateur' : 'Technicien';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  updateThemeIcons(savedTheme);
+  applyRoleUI(isAdmin);
+  initApp(isAdmin);
+}
+function applyRoleUI(isAdmin) {
+  document.querySelectorAll('.admin-nav').forEach(el => el.style.display = isAdmin ? '' : 'none');
+  document.querySelectorAll('.tech-nav').forEach(el => el.style.display = isAdmin ? 'none' : '');
+  document.getElementById('stats-admin').style.display = isAdmin ? 'grid' : 'none';
+  document.getElementById('stats-tech').style.display = isAdmin ? 'none' : 'grid';
+  document.getElementById('admin-perf-card').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('admin-pdf-card').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('tech-recent-card').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('tech-welcome').style.display = isAdmin ? 'none' : 'block';
+  
+  // ✅ Gérer l'affichage de la page gasoil dans le menu
+  const gasoilMenuItem = document.querySelector('.nav-item[onclick*="gasoil"]');
+  const adminGasoilMenuItem = document.querySelector('.nav-item[onclick*="admin-gasoil"]');
+  
+  if (gasoilMenuItem) gasoilMenuItem.style.display = ''; // Tout le monde voit "Mon gasoil"
+  if (adminGasoilMenuItem) adminGasoilMenuItem.style.display = isAdmin ? '' : 'none';
+  
+  if (!isAdmin) {
+    document.getElementById('tech-welcome-name').textContent = `Bonjour${currentUser.first_name ? ', ' + currentUser.first_name : ''} 👋`;
+  }
+}
+function logout() { localStorage.removeItem('omega_token'); location.reload(); }
+async function apiFetch(path, options={}) {
+  const res = await fetch(`${API}${path}`, {...options, headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,...(options.headers||{})}});
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+function initApp(isAdmin) {
+  initNotifications(isAdmin);
+  loadDashboard(isAdmin);
+  loadInterventions();
+  loadConstats();
+  loadListes();
+  if (isAdmin) {
+    loadTechniciens(); loadBaremesTech(); loadBaremesOp(); loadAnnonces();
+    loadPdfPending(); loadFactures(); loadReclamations();
+    loadTechniciensForSelect(); loadAnnoncesPrivees();
+  } else {
+    checkAnnonceTech();
+    loadAnnoncesTech();
+  }
+}
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+/* ══ DASHBOARD ══════════════════════════════════════ */
+async function loadDashboard(isAdmin) {
+  const admin = isAdmin !== undefined ? isAdmin : (currentUser?.role === 'admin');
+  if (admin) {
+    // DASHBOARD ADMIN
+    try {
+      const d = await apiFetch('/reporting/dashboard/');
+      document.getElementById('dashboard-periode').textContent = `Période : ${d.periode}`;
+      document.getElementById('stat-ca').textContent = `${d.chiffre_affaires.toFixed(2)} €`;
+      
+      // ✅ CORRECTION 1 : Recalculer les coûts techniciens UNIQUEMENT pour les interventions Réussies
+      try {
+        const interventions = await apiFetch('/interventions/');
+        const list = Array.isArray(interventions) ? interventions : (interventions.results || []);
+        const now = new Date();
+        const moisCourant = now.getMonth();
+        const anneeCourante = now.getFullYear();
+        
+        const coutsReel = list.reduce((sum, i) => {
+          const dateInter = new Date(i.date_intervention);
+          const statutOk = i.statut_nom === 'Réussie' || i.statut_nom === 'reussie' || i.statut_nom === 'Réussi';
+          const gain = parseFloat(i.gain_technicien || i.cout_technicien || 0);
+          if (dateInter.getMonth() === moisCourant && dateInter.getFullYear() === anneeCourante && statutOk) {
+            return sum + gain;
+          }
+          return sum;
+        }, 0);
+        
+        document.getElementById('stat-cout').textContent = `${coutsReel.toFixed(2)} €`;
+        const ca = d.chiffre_affaires;
+        document.getElementById('stat-marge').textContent = `${(ca - coutsReel).toFixed(2)} €`;
+      } catch(e) {
+        console.warn('[recalcul couts]', e);
+        document.getElementById('stat-cout').textContent = `${d.couts_techniciens.toFixed(2)} €`;
+        document.getElementById('stat-marge').textContent = `${d.marge_brute.toFixed(2)} €`;
+      }
+      
+      document.getElementById('stat-nb').textContent = d.nb_interventions;
+    } catch(e) { console.warn('[dashboard]', e); }
+    
+    // ✅ CORRECTION 2 : Tableau Performance par technicien avec calcul correct des gains (uniquement Réussies)
+    try {
+      const [users, allInterventions] = await Promise.all([
+        apiFetch('/auth/users/'),
+        apiFetch('/interventions/')
+      ]);
+      
+      const usersList = Array.isArray(users) ? users : (users.results || []);
+      const interventionsList = Array.isArray(allInterventions) ? allInterventions : (allInterventions.results || []);
+      
+      const now = new Date();
+      const moisCourant = now.getMonth();
+      const anneeCourante = now.getFullYear();
+      
+      // Mapping ID utilisateur -> Nom complet
+      const userMap = {};
+      usersList.forEach(u => {
+        const nomComplet = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username;
+        userMap[u.id] = nomComplet;
+      });
+      
+// Calcul des performances PAR TECHNICIEN pour le mois courant
+      const techPerformance = {};
+      
+      interventionsList.forEach(interv => {
+        const dateInter = new Date(interv.date_intervention);
+        if (dateInter.getMonth() === moisCourant && dateInter.getFullYear() === anneeCourante) {
+          const techId = interv.technicien;
+          if (!techPerformance[techId]) {
+            techPerformance[techId] = { nb: 0, ca: 0, gains: 0 };
+          }
+          
+          techPerformance[techId].nb++;
+
+          // ✅ Déclaré EN PREMIER, avant les if
+          const statutOk = interv.statut_nom === 'Réussie' || interv.statut_nom === 'reussie' || interv.statut_nom === 'Réussi';
+
+          if (statutOk) {
+            techPerformance[techId].ca += parseFloat(interv.ca_client || interv.chiffre_affaires || 0);
+          }
+          if (statutOk) {
+            techPerformance[techId].gains += parseFloat(interv.gain_technicien || interv.cout_technicien || 0);
+          }
+        }
+      });
+      
+      const tbody = document.getElementById('tech-table-body');
+      if (Object.keys(techPerformance).length === 0) { 
+        tbody.innerHTML = '<div class="empty">Aucune intervention ce mois</div>'; 
+      } else {
+        tbody.innerHTML = `<table><thead>
+          <tr>
+            <th>Technicien</th>
+            <th>Interventions</th>
+            <th>CA</th>
+            <th>Gains (uniquement Réussies)</th>
+            <th>Marge</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Object.entries(techPerformance).map(([techId, perf]) => {
+            const techNom = userMap[techId] || `Technicien #${techId}`;
+            const marge = perf.ca - perf.gains;
+            return `
+              <tr>
+                <td><strong>${esc(techNom)}</strong></td>
+                <td><span class="badge badge-blue">${perf.nb}</span></td>
+                <td class="mono">${perf.ca.toFixed(2)} €</td>
+                <td class="mono" style="color:var(--accent2)">${perf.gains.toFixed(2)} €</td>
+                <td class="mono" style="color:var(--accent2)">${marge.toFixed(2)} €</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+        `;
+      }
+    } catch(e) { 
+      console.warn('[tech table]', e); 
+      const tbody = document.getElementById('tech-table-body');
+      if (tbody) tbody.innerHTML = '<div class="empty">Erreur de chargement</div>';
+    }
+    
+    loadPdfPending();
+    
+  } else {
+    // DASHBOARD TECHNICIEN
+    try {
+      const data = await apiFetch('/interventions/');
+      const list = Array.isArray(data) ? data : (data.results || []);
+      document.getElementById('stat-tech-nb').textContent = list.length;
+      
+      // Calcul gains uniquement pour les interventions "Réussie" du mois courant
+      const now = new Date();
+      const moisCourant = now.getMonth();
+      const anneeCourante = now.getFullYear();
+      const listMois = list.filter(i => {
+        const d = new Date(i.date_intervention);
+        const statutOk = i.statut_nom === 'Réussie' || i.statut_nom === 'reussie' || i.statut_nom === 'Réussi';
+        return d.getMonth() === moisCourant && d.getFullYear() === anneeCourante && statutOk;
+      });
+      const totalGains = listMois.reduce((sum, i) => sum + parseFloat(i.gain_technicien || i.cout_technicien || 0), 0);
+      const moisNom = now.toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+      document.getElementById('label-tech-gains').textContent = `💰 Gains — ${moisNom}`;
+      document.getElementById('stat-tech-gains').textContent = totalGains > 0 ? `${totalGains.toFixed(2)} €` : '0.00 €';
+      
+      // Mes dernières interventions
+      const recent = document.getElementById('tech-recent-body');
+      if (!list.length) { 
+        recent.innerHTML = '<div class="empty">Aucune intervention</div>'; 
+      } else {
+        recent.innerHTML = `<table><thead>
+          <tr>
+            <th>Ticket</th>
+            <th>Type</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th>Gain</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.slice(0,5).map(i => {
+            const statutOk = i.statut_nom === 'Réussie' || i.statut_nom === 'reussie';
+            return `
+              <tr>
+                <td class="mono">${esc(i.ticket_id || '—')}</td>
+                <td>${esc(i.type_nom || '—')}</td>
+                <td><span class="badge badge-blue">${esc(i.statut_nom || '—')}</span></td>
+                <td>${new Date(i.date_intervention).toLocaleDateString('fr-FR')}</td>
+                <td class="mono" style="color:${statutOk ? 'var(--accent2)' : 'var(--text3)'}">
+                  ${statutOk ? parseFloat(i.gain_technicien || i.cout_technicien || 0).toFixed(2) + ' €' : '—'}
+                </td>
+                <td>
+                  <button class="btn-sm" style="padding:4px 8px;font-size:11px" 
+                    onclick='openEditIntervention(${JSON.stringify(i)})'>✏️</button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+        `;
+      }
+    } catch(e) { console.warn('[dashboard tech]', e); }
+    
+    // Endpoint reporting pour gains plus précis
+    try {
+      const rep = await apiFetch('/reporting/me/');
+      if (rep.gains !== undefined && parseFloat(rep.gains) >= 0) {
+        document.getElementById('stat-tech-gains').textContent = `${parseFloat(rep.gains).toFixed(2)} €`;
+        if (rep.periode) document.getElementById('label-tech-gains').textContent = `💰 Gains — ${rep.periode}`;
+      }
+    } catch(e) { console.warn('[reporting/me]', e); }
+    
+    // Nombre de constats du technicien
+    try {
+      const c = await apiFetch('/constats/');
+      document.getElementById('stat-tech-constats').textContent = (Array.isArray(c) ? c : (c.results || [])).length;
+    } catch(e) { console.warn('[constats count]', e); }
+  }
+}
+
+// ✅ NOUVELLE FONCTION : Calculer les vrais coûts techniciens (uniquement réussies)
+async function calculerCoutsReels() {
+  try {
+    const interventions = await apiFetch('/interventions/');
+    const list = Array.isArray(interventions) ? interventions : (interventions.results || []);
+    const now = new Date();
+    const moisCourant = now.getMonth();
+    const anneeCourante = now.getFullYear();
+    
+    return list.reduce((sum, i) => {
+      const d = new Date(i.date_intervention);
+      const statutOk = i.statut_nom === 'Réussie' || i.statut_nom === 'reussie' || i.statut_nom === 'Réussi';
+      const gain = parseFloat(i.gain_technicien || i.cout_technicien || 0);
+      if (d.getMonth() === moisCourant && d.getFullYear() === anneeCourante && statutOk) {
+        return sum + gain;
+      }
+      return sum;
+    }, 0);
+  } catch(e) {
+    console.warn('[calculerCoutsReels]', e);
+    return 0;
+  }
+}
+
+/* ══ PDF EN ATTENTE ════════════════════════════════ */
+async function loadPdfPending() {
+  const body = document.getElementById('admin-pdf-body');
+  if (!body) return;
+  const pdfStore = JSON.parse(localStorage.getItem('omega_pdfs') || '{}');
+  let apiList = [];
+  try {
+    const data = await apiFetch('/constats/statut/soumis/');
+    apiList = Array.isArray(data) ? data : (data.results || []);
+  } catch(e) {
+    try {
+      const all = await apiFetch('/constats/');
+      const allList = Array.isArray(all) ? all : (all.results || []);
+      apiList = allList.filter(c => c.statut === 'soumis');
+    } catch {}
+  }
+  const badge = document.getElementById('badge-soumis');
+  const localIds = Object.keys(pdfStore).map(Number);
+  const apiIds = apiList.map(c => c.id);
+  const localOnly = localIds.filter(id => !apiIds.includes(id)).map(id => ({
+    id, _local: true, ...pdfStore[id]
+  }));
+  const total = apiList.length + localOnly.length;
+  if (badge) badge.style.display = total > 0 ? 'inline' : 'none';
+  if (!total) { body.innerHTML = '<div class="empty" style="padding:20px">Aucun PDF en attente ✅</div>'; return; }
+  const renderCard = (c, isLocal) => {
+    const pdfUrl = c.pdf_url || c.pdf_file || '';
+    const localPdf = pdfStore[c.id];
+    const pdfHtml = pdfUrl
+      ? `<a href="${pdfUrl}" target="_blank" class="pdf-link">📄 Ouvrir le PDF</a>`
+      : localPdf
+        ? `<a href="${localPdf.dataUrl}" download="constat_${c.id}.pdf" class="pdf-link" style="background:rgba(247,127,79,0.12);color:var(--accent3)">📄 PDF local ↓</a>`
+        : '<span style="font-size:11px;color:var(--text3)">Pas de PDF</span>';
+    const techNom = c.technicien_nom || c.technicien || '—';
+    const catLabel = (c.categorie||'').replace(/_/g,' ');
+    const dateLabel = c.date_soumission || c.date_creation || c.date || new Date().toISOString();
+    const clientNom = c.nom_signataire || localPdf?.signataire || '';
+    return `<div class="pdf-alert" style="${isLocal ? 'border-color:rgba(247,127,79,0.4)' : ''}">
+      <div class="pdf-alert-icon">📄</div>
+      <div class="pdf-alert-text">
+        <strong>Constat #${c.id} — ${esc(techNom)} ${catLabel ? `— ${esc(catLabel)}` : ''}</strong>
+        ${clientNom ? `<span style="color:var(--accent3);font-size:12px">👤 ${esc(clientNom)}</span><br>` : ''}
+        Soumis le ${new Date(dateLabel).toLocaleDateString('fr-FR')}
+        ${isLocal ? '<span style="background:rgba(247,127,79,0.15);color:var(--accent3);border-radius:4px;padding:1px 6px;font-size:10px;margin-left:6px">Local</span>' : ''}
+        <br>${pdfHtml}
+      </div>
+      <button class="btn-sm green" style="padding:5px 10px;font-size:11px;flex-shrink:0" onclick="ouvrirGererConstat(${c.id},'${esc(techNom)}','${pdfUrl}',${c.id})">Gérer</button>
+    </div>`;
+  };
+  body.innerHTML = apiList.map(c => renderCard(c, false)).join('') +
+                   localOnly.map(c => renderCard(c, true)).join('');
+}
+function ouvrirGererConstat(id, techNom, pdfUrl, constatId) {
+  document.getElementById('gerer-constat-id').value = id;
+  document.getElementById('gerer-titre').textContent = `Gérer le constat #${id} — ${techNom}`;
+  document.getElementById('gerer-commentaire').value = '';
+  const pdfStore = JSON.parse(localStorage.getItem('omega_pdfs') || '{}');
+  const localPdf = pdfStore[constatId || id];
+  const finalUrl = (pdfUrl && pdfUrl !== 'null' && pdfUrl !== '') ? pdfUrl : (localPdf?.dataUrl || '');
+  const zone = document.getElementById('gerer-pdf-zone');
+  if (finalUrl) {
+    const isLocal = !pdfUrl || pdfUrl === 'null' || pdfUrl === '';
+    zone.innerHTML = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:20px">📄</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">PDF soumis par le technicien ${isLocal ? '<span style="background:rgba(247,127,79,0.15);color:var(--accent3);border-radius:4px;padding:1px 6px;font-size:10px">stockage local</span>' : ''}</div>
+        ${localPdf?.signataire ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">👤 Client : <strong>${esc(localPdf.signataire)}</strong></div>` : ''}
+        <a href="${finalUrl}" ${isLocal ? `download="constat_${id}.pdf"` : 'target="_blank"'} class="pdf-link">📄 ${isLocal ? 'Télécharger' : 'Ouvrir'} le PDF</a>
+      </div>
+    </div>`;
+  } else {
+    zone.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">Aucun PDF joint à ce constat.</div>';
+  }
+  openModal('modal-gerer-constat');
+}
+async function gererConstat(action) {
+  const id = document.getElementById('gerer-constat-id').value;
+  const commentaire = document.getElementById('gerer-commentaire').value.trim();
+  if (action === 'rejeter' && !commentaire) { toast('Un commentaire est requis pour rejeter.','error'); return; }
+  try {
+    const res = await fetch(`${API}/constats/${id}/gerer/`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({action,commentaire})});
+    if (!res.ok) { const e=await res.json(); throw new Error(e.detail||'Erreur'); }
+    toast(action==='valider'?'✅ Constat validé !':'❌ Constat rejeté.');
+    closeModal('modal-gerer-constat'); loadPdfPending(); loadConstats();
+  } catch(e) { toast('Erreur : '+e.message,'error'); }
+}
+
+/* ══ ANNONCES GLOBALES ══════════════════════════════ */
+async function checkAnnonceTech() {
+  try {
+    const data = await apiFetch('/annonces/derniere/');
+    if (data && data.message && !data.deja_lue) showAnnonceTechPopup(data);
+  } catch {}
+}
+function showAnnonceTechPopup(annonce) {
+  const ex=document.getElementById('annonce-popup'); if(ex) ex.remove();
+  const popup=document.createElement('div');
+  popup.className='annonce-popup'; popup.id='annonce-popup';
+  popup.innerHTML=`<div class="annonce-popup-title">📢 Annonce de l'administrateur</div>
+    <div class="annonce-popup-msg">${esc(annonce.message)}</div>
+    <div class="annonce-popup-actions"><button class="btn-sm green" onclick="marquerAnnonceOK(${annonce.id})">✓ OK, j'ai lu</button></div>`;
+  document.body.appendChild(popup);
+}
+async function marquerAnnonceOK(id) {
+  try { await apiFetch(`/annonces/${id}/lue/`,{method:'POST'}); } catch {}
+  const p=document.getElementById('annonce-popup'); if(p) p.remove();
+}
+async function loadAnnonces() {
+  try {
+    const data=await apiFetch('/annonces/');
+    const list=Array.isArray(data)?data:(data.results||[]);
+    const body=document.getElementById('annonces-body');
+    if (!list.length) { body.innerHTML='<div class="empty">Aucune annonce</div>'; return; }
+    body.innerHTML='<div style="padding:16px">'+[...list].sort((a,b)=>new Date(b.date_envoi)-new Date(a.date_envoi)).map((a,i)=>`
+      <div class="annonce-box" ${i===0?'style="border-color:var(--accent2)"':''}>
+        ${i===0?'<div style="font-size:10px;font-weight:700;color:var(--accent2);text-transform:uppercase;margin-bottom:4px">✦ Dernière</div>':''}
+        <div class="annonce-meta">${new Date(a.date_envoi).toLocaleDateString('fr-FR')} à ${new Date(a.date_envoi).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
+        <div class="annonce-msg">${esc(a.message)}</div>
+        <div class="annonce-lectures">✓ ${a.nb_lectures||0} technicien(s) ont fait</div>
+      </div>`).join('')+'</div>';
+  } catch {}
+}
+async function envoyerAnnonce() {
+  const msg=document.getElementById('annonce-message').value.trim();
+  if (!msg) { toast('Écris un message !','error'); return; }
+  try { await apiFetch('/annonces/',{method:'POST',body:JSON.stringify({message:msg})}); document.getElementById('annonce-message').value=''; loadAnnonces();
+    pushNotifTech({ type:'message', icon:'📢', title:'Nouvelle annonce', body: msg.length > 60 ? msg.substring(0,60)+'…' : msg, time: new Date().toISOString() });
+    toast('✅ Annonce envoyée à tous !'); }
+  catch { toast('Erreur.','error'); }
+}
+
+/* ══ ANNONCES PRIVÉES ADMIN ═════════════════════════ */
+async function loadTechniciensForSelect() {
+  try {
+    const data = await apiFetch('/auth/users/');
+    const list = Array.isArray(data) ? data : (data.results || []);
+    const techs = list.filter(u => u.role === 'technicien');
+    const select = document.getElementById('annonce-destinataire');
+    if (select) {
+      select.innerHTML = '<option value="">— Choisir un technicien —</option>' +
+        techs.map(t => `<option value="${t.id}">${esc(t.first_name||'')} ${esc(t.last_name||'')} (${esc(t.username)})</option>`).join('');
+    }
+  } catch(e) { console.warn('[loadTechniciensForSelect]', e.message); }
+}
+
+async function envoyerAnnoncePrivee() {
+  const destinataireId = document.getElementById('annonce-destinataire').value;
+  const message = document.getElementById('annonce-privee-message').value.trim();
+  if (!destinataireId) { toast('Sélectionnez un technicien destinataire', 'error'); return; }
+  if (!message) { toast('Écrivez un message', 'error'); return; }
+  const btn = document.getElementById('btn-envoyer-privee');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Envoi...'; }
+  const id = parseInt(destinataireId);
+  const payloads = [
+    { destinataire_id: id, message },
+    { destinataire: id, message },
+    { user_id: id, message },
+    { technicien_id: id, message },
+    { recipient_id: id, message },
+    { to: id, message },
+  ];
+  let sent = false;
+  let lastError = '';
+  for (const payload of payloads) {
+    try {
+      const res = await fetch(`${API}/annonces/privee/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) { sent = true; break; }
+      const errBody = await res.json().catch(() => ({}));
+      lastError = JSON.stringify(errBody);
+    } catch(e) { lastError = e.message; }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '📨 Envoyer en privé'; }
+  if (sent) {
+    document.getElementById('annonce-privee-message').value = '';
+    toast('✅ Message privé envoyé !', 'success');
+    loadAnnoncesPrivees();
+  } else {
+    toast('❌ Envoi échoué — voir console pour détails', 'error', 5000);
+    console.error('[annonce privee] Tous les formats ont échoué. Dernière erreur:', lastError);
+  }
+}
+
+async function loadAnnoncesPrivees() {
+  const body = document.getElementById('annonces-privees-body');
+  if (!body) return;
+  body.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+  try {
+    const data = await apiFetch('/annonces/privee/');
+    const list = Array.isArray(data) ? data : (data.results || []);
+    if (!list.length) { body.innerHTML = '<div class="empty">Aucun message privé envoyé pour le moment</div>'; return; }
+    const enriched = list.map(a => ({
+      ...a,
+      lu: a.lu || isFait(a.id, 'prive'),
+      date_lecture: a.date_lecture || (isFait(a.id, 'prive') ? getFaitIds()[`prive_${a.id}`]?.date : null)
+    }));
+    body.innerHTML = `<div style="padding:16px">${enriched.sort((a,b)=>new Date(b.date_envoi)-new Date(a.date_envoi)).map(a => `
+      <div class="annonce-box" style="${a.lu ? '' : 'border-color:var(--accent3)'}">
+        <div class="annonce-meta" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+          📅 ${new Date(a.date_envoi).toLocaleDateString('fr-FR')} à ${new Date(a.date_envoi).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
+          <span class="badge badge-blue">À: ${esc(a.destinataire_nom||a.destinataire_username||'—')}</span>
+          <span class="badge ${a.lu?'badge-green':'badge-orange'}">${a.lu?'✓ Fait':'⏳ En attente'}</span>
+        </div>
+        <div class="annonce-msg">${esc(a.message)}</div>
+        ${a.lu && a.date_lecture ? `<div class="annonce-lectures">✓ Fait le ${new Date(a.date_lecture).toLocaleDateString('fr-FR')}</div>` : ''}
+      </div>`).join('')}</div>`;
+  } catch(e) {
+    const faits = getFaitIds();
+    const faitEntries = Object.values(faits).filter(f => f.type === 'prive');
+    if (faitEntries.length) {
+      body.innerHTML = `<div style="padding:16px">
+        <div style="background:rgba(247,127,79,0.08);border:1px solid rgba(247,127,79,0.2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:var(--text2)">
+          ⚠️ L'API <code>/api/annonces/privee/</code> ne répond pas. Données locales affichées.
+        </div>
+        ${faitEntries.map(f => `
+          <div class="annonce-box">
+            <div class="annonce-meta">
+              <span class="badge badge-green">✓ Fait</span>
+              <span style="margin-left:8px">Annonce #${f.id} — ${new Date(f.date).toLocaleDateString('fr-FR')}</span>
+            </div>
+          </div>`).join('')}
+      </div>`;
+    } else {
+      body.innerHTML = `<div style="padding:16px">
+        <div class="api-error-box">
+          <strong style="color:var(--danger)">Endpoint non disponible (${e.message})</strong><br>
+          Vérifiez que <code>GET /api/annonces/privee/</code> est défini dans Django.
+        </div>
+      </div>`;
+    }
+  }
+}
+
+/* ══ ANNONCES TECH ══════════════════════════════════ */
+async function loadAnnoncesTech() {
+  const body = document.getElementById('annonces-tech-body');
+  if (!body) return;
+  body.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+  let globalList = [];
+  let priveList = [];
+  try {
+    const g = await apiFetch('/annonces/');
+    globalList = Array.isArray(g) ? g : (g.results || []);
+  } catch(e) { console.warn('[annonces globales tech]', e.message); }
+  const privateEndpoints = [
+    '/annonces/privee/recues/',
+    '/annonces/privee/mes/',
+    '/annonces/privee/?destinataire=me',
+    '/annonces/privee/',
+  ];
+  for (const ep of privateEndpoints) {
+    try {
+      const p = await apiFetch(ep);
+      priveList = Array.isArray(p) ? p : (p.results || []);
+      break;
+    } catch(e) { console.warn(`[annonces privées] ${ep} → ${e.message}`); }
+  }
+  const all = [
+    ...globalList.map(g => ({ ...g, _type: 'global', _lue: !!(g.deja_lue) || isFait(g.id, 'global') })),
+    ...priveList.map(p => ({ ...p, _type: 'prive', _lue: !!(p.lu || p.deja_lue) || isFait(p.id, 'prive') }))
+  ];
+  all.sort((a, b) => new Date(b.date_envoi) - new Date(a.date_envoi));
+  if (!all.length) {
+    body.innerHTML = '<div class="empty" style="padding:40px;font-size:14px">Aucune annonce pour le moment 📭</div>';
+    return;
+  }
+  body.innerHTML = '<div style="padding:20px;max-width:680px">' + all.map(a => `
+    <div class="annonce-box" style="transition:border-color 0.2s;${!a._lue ? 'border-color:var(--accent);background:rgba(79,142,247,0.04)' : ''}">
+      <div class="annonce-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${a._type === 'prive'
+          ? '🔒 <strong style="color:var(--accent3)">Message privé</strong>'
+          : '📢 <span>Annonce générale</span>'
+        }
+        <span style="color:var(--text3)">•</span>
+        <span>${new Date(a.date_envoi).toLocaleDateString('fr-FR')} à ${new Date(a.date_envoi).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
+        ${!a._lue ? '<span style="background:var(--accent);color:white;border-radius:10px;padding:1px 8px;font-size:10px;font-weight:700">NOUVEAU</span>' : ''}
+      </div>
+      <div class="annonce-msg" style="margin-top:8px">${esc(a.message)}</div>
+      <div style="margin-top:10px">
+        ${!a._lue
+          ? `<button class="btn-sm green" style="font-size:11px;padding:5px 12px" onclick="marquerAnnonceTechLue(${a.id},'${a._type}',this)">✓ Fait</button>`
+          : '<span class="annonce-lectures" style="color:var(--accent2);font-weight:600">✓ Fait</span>'
+        }
+      </div>
+    </div>
+  `).join('') + '</div>';
+}
+
+/* ══ SYSTÈME FAIT ════════════════════════════════════ */
+function getFaitIds() {
+  try { return JSON.parse(localStorage.getItem('omega_faits') || '{}'); } catch { return {}; }
+}
+function setFaitId(id, type, username) {
+  const faits = getFaitIds();
+  faits[`${type}_${id}`] = { id, type, username, date: new Date().toISOString() };
+  localStorage.setItem('omega_faits', JSON.stringify(faits));
+}
+function isFait(id, type) {
+  return !!getFaitIds()[`${type}_${id}`];
+}
+async function marquerAnnonceTechLue(id, type, btn) {
+  const username = currentUser?.username || 'tech';
+  const nom = `${currentUser?.first_name||''} ${currentUser?.last_name||''}`.trim() || username;
+  setFaitId(id, type, username);
+  if (btn) {
+    const span = document.createElement('span');
+    span.className = 'annonce-lectures';
+    span.style.cssText = 'color:var(--accent2);font-weight:600;font-size:12px';
+    span.textContent = '✓ Fait';
+    btn.parentNode.replaceChild(span, btn);
+  }
+  toast('✓ Fait');
+  pushNotifAdmin({
+    type: 'fait', icon: '✅', title: 'Annonce confirmée',
+    body: `${nom} a confirmé avoir lu le message.`, time: new Date().toISOString()
+  });
+  const endpoints = type === 'global'
+    ? [`/annonces/${id}/lue/`, `/annonces/${id}/marquer-lue/`, `/annonces/${id}/read/`]
+    : [`/annonces/privee/${id}/lue/`, `/annonces/privee/${id}/marquer-lue/`, `/annonces/${id}/lue/`];
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(`${API}${ep}`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`} });
+      if (res.ok) { break; }
+    } catch(e) { /* silencieux */ }
+  }
+}
+
+/* ══ NOTIFICATIONS ═══════════════════════════════════ */
+let notifChannel = null;
+let notifPollInterval = null;
+let notifStack = [];
+
+function initNotifications(isAdmin) {
+  try {
+    notifChannel = new BroadcastChannel('omega_notifs');
+    notifChannel.onmessage = (e) => handleIncomingNotif(e.data, isAdmin);
+  } catch(e) { console.warn('[notif] BroadcastChannel non disponible'); }
+  notifPollInterval = setInterval(() => checkNewNotifs(isAdmin), 15000);
+  checkNewNotifs(isAdmin);
+}
+function pushNotifAdmin(notif) {
+  const key = 'omega_notifs_admin';
+  const list = JSON.parse(localStorage.getItem(key) || '[]');
+  list.unshift({ ...notif, id: Date.now(), seen: false });
+  localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+  if (notifChannel) notifChannel.postMessage({ target: 'admin', ...notif });
+  updateAdminBadge();
+}
+function pushNotifTech(notif) {
+  const key = 'omega_notifs_tech';
+  const list = JSON.parse(localStorage.getItem(key) || '[]');
+  list.unshift({ ...notif, id: Date.now(), seen: false });
+  localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+  if (notifChannel) notifChannel.postMessage({ target: 'tech', ...notif });
+  updateTechBadge();
+}
+function handleIncomingNotif(data, isAdmin) {
+  if (isAdmin && data.target === 'admin') { showNotifPopup(data); updateAdminBadge(); }
+  else if (!isAdmin && data.target === 'tech') { showNotifPopup(data); updateTechBadge(); }
+}
+function checkNewNotifs(isAdmin) {
+  if (isAdmin) updateAdminBadge();
+  else updateTechBadge();
+}
+function updateAdminBadge() {
+  const list = JSON.parse(localStorage.getItem('omega_notifs_admin') || '[]');
+  const unseen = list.filter(n => !n.seen).length;
+  const badge = document.getElementById('badge-admin-notif');
+  if (badge) { badge.style.display = unseen > 0 ? 'inline' : 'none'; badge.textContent = unseen > 9 ? '9+' : unseen; }
+}
+function updateTechBadge() {
+  const list = JSON.parse(localStorage.getItem('omega_notifs_tech') || '[]');
+  const unseen = list.filter(n => !n.seen).length;
+  const badge = document.getElementById('badge-tech-notif');
+  if (badge) { badge.style.display = unseen > 0 ? 'inline' : 'none'; badge.textContent = unseen > 9 ? '9+' : unseen; }
+}
+function clearAdminNotifBadge() {
+  const list = JSON.parse(localStorage.getItem('omega_notifs_admin') || '[]');
+  list.forEach(n => n.seen = true);
+  localStorage.setItem('omega_notifs_admin', JSON.stringify(list));
+  updateAdminBadge();
+}
+function clearTechNotifBadge() {
+  const list = JSON.parse(localStorage.getItem('omega_notifs_tech') || '[]');
+  list.forEach(n => n.seen = true);
+  localStorage.setItem('omega_notifs_tech', JSON.stringify(list));
+  updateTechBadge();
+}
+function showNotifPopup(notif) {
+  const popup = document.createElement('div');
+  popup.className = `notif-popup ${notif.type || ''}`;
+  popup.style.top = `${20 + notifStack.length * 100}px`;
+  const timeStr = notif.time ? new Date(notif.time).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}) : '';
+  popup.innerHTML = `
+    <div class="notif-icon">${notif.icon || '🔔'}</div>
+    <div class="notif-content">
+      <div class="notif-title ${notif.type || ''}">${esc(notif.title || 'Notification')}</div>
+      <div class="notif-body">${esc(notif.body || '')}</div>
+      ${timeStr ? `<div class="notif-time">${timeStr}</div>` : ''}
+    </div>
+    <button class="notif-close" onclick="dismissNotif(this)">✕</button>`;
+  document.body.appendChild(popup);
+  notifStack.push(popup);
+  setTimeout(() => dismissNotif(popup.querySelector('.notif-close')), 6000);
+}
+function dismissNotif(closeBtn) {
+  const popup = closeBtn?.closest?.('.notif-popup') || closeBtn?.parentNode;
+  if (!popup || !popup.parentNode) return;
+  popup.style.opacity = '0'; popup.style.transform = 'translateX(120%)'; popup.style.transition = 'all 0.3s ease';
+  setTimeout(() => { popup.remove(); notifStack = notifStack.filter(p => p !== popup); notifStack.forEach((p, i) => { p.style.top = `${20 + i * 100}px`; }); }, 300);
+}
+
+/* ══ FACTURES ════════════════════════════════════════ */
+function loadFacturesFromStorage() { const s=localStorage.getItem('omega_factures');factures=s?JSON.parse(s):[]; }
+function saveFacturesToStorage() { localStorage.setItem('omega_factures',JSON.stringify(factures)); }
+async function loadFactures() {
+  const body=document.getElementById('factures-body');if(!body)return;
+  loadFacturesFromStorage();
+  if(!factures.length){body.innerHTML='<div class="empty">Aucune facture</div>';return;}
+  body.innerHTML=`<table><thead><tr><th>Date</th><th>N° Facture</th><th>Statut</th><th>Montant</th><th>Commentaire</th><th>Actions</th></tr></thead><tbody>
+    ${factures.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(f=>{
+      const sc=f.statut==='paye'||f.statut==='reussi'?'badge-green':(f.statut==='en_attente'?'badge-orange':'badge-red');
+      const sl={paye:'✅ Payé',reussi:'💰 Réussi',en_attente:'⏳ En attente',impaye:'❌ Impayé'}[f.statut]||f.statut;
+      return `<tr>
+        <td>${new Date(f.date).toLocaleDateString('fr-FR')}</td>
+        <td class="mono">${esc(f.numero)}</td>
+        <td><span class="badge ${sc}">${sl}</span></td>
+        <td class="mono">${parseFloat(f.montant||0).toFixed(2)} €</td>
+        <td>${esc(f.commentaire||'—')}</td>
+        <td><button class="btn-sm" style="padding:4px 8px;font-size:11px" onclick="openEditFacture(${f.id})">✏️</button>
+            <button class="btn-sm danger" style="padding:4px 8px;font-size:11px" onclick="deleteFacture(${f.id})">🗑</button></td>
+      </tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+function openEditFacture(id){const f=factures.find(f=>f.id===id);if(!f)return;document.getElementById('edit-facture-id').value=f.id;document.getElementById('edit-facture-date').value=f.date;document.getElementById('edit-facture-numero').value=f.numero;document.getElementById('edit-facture-statut').value=f.statut;document.getElementById('edit-facture-montant').value=f.montant;document.getElementById('edit-facture-commentaire').value=f.commentaire||'';openModal('modal-edit-facture');}
+function updateFacture(){const id=parseInt(document.getElementById('edit-facture-id').value);const i=factures.findIndex(f=>f.id===id);if(i!==-1){factures[i]={...factures[i],date:document.getElementById('edit-facture-date').value,numero:document.getElementById('edit-facture-numero').value,statut:document.getElementById('edit-facture-statut').value,montant:parseFloat(document.getElementById('edit-facture-montant').value)||0,commentaire:document.getElementById('edit-facture-commentaire').value};saveFacturesToStorage();loadFactures();closeModal('modal-edit-facture');toast('✅ Facture modifiée !');}}
+function saveFacture(){const date=document.getElementById('facture-date').value,numero=document.getElementById('facture-numero').value.trim();if(!date||!numero){toast('Date et numéro requis','error');return;}factures.unshift({id:Date.now(),date,numero,statut:document.getElementById('facture-statut').value,montant:parseFloat(document.getElementById('facture-montant').value)||0,commentaire:document.getElementById('facture-commentaire').value});saveFacturesToStorage();loadFactures();closeModal('modal-facture');['facture-date','facture-numero','facture-montant','facture-commentaire'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});toast('✅ Facture ajoutée !');}
+function deleteFacture(id){if(!confirm('Supprimer ?'))return;factures=factures.filter(f=>f.id!==id);saveFacturesToStorage();loadFactures();toast('Facture supprimée');}
+
+/* ══ RÉCLAMATIONS ════════════════════════════════════ */
+function loadReclamationsFromStorage(){const s=localStorage.getItem('omega_reclamations');reclamations=s?JSON.parse(s):[];}
+function saveReclamationsToStorage(){localStorage.setItem('omega_reclamations',JSON.stringify(reclamations));}
+async function loadReclamations(){const body=document.getElementById('reclamations-body');if(!body)return;loadReclamationsFromStorage();if(!reclamations.length){body.innerHTML='<div class="empty">Aucune réclamation</div>';return;}body.innerHTML=`<table><thead><tr><th>Date</th><th>N°</th><th>Statut</th><th>Description</th><th>Client</th><th>Actions</th></tr></thead><tbody>${reclamations.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(r=>{const sc=r.statut==='traite'?'badge-green':(r.statut==='en_cours'?'badge-orange':(r.statut==='envoye'?'badge-blue':'badge-red'));const sl={envoye:'📨 Envoyé',en_cours:'🔄 En cours',traite:'✅ Traité',rejete:'❌ Rejeté'}[r.statut]||r.statut;return`<tr><td>${new Date(r.date).toLocaleDateString('fr-FR')}</td><td class="mono">${esc(r.numero)}</td><td><span class="badge ${sc}">${sl}</span></td><td>${esc(r.description||'—')}</td><td>${esc(r.client||'—')}</td><td><button class="btn-sm" style="padding:4px 8px;font-size:11px" onclick="openEditReclamation(${r.id})">✏️</button><button class="btn-sm danger" style="padding:4px 8px;font-size:11px" onclick="deleteReclamation(${r.id})">🗑</button></td></tr>`;}).join('')}</tbody></table>`;}
+function openEditReclamation(id){const r=reclamations.find(r=>r.id===id);if(!r)return;document.getElementById('edit-reclamation-id').value=r.id;document.getElementById('edit-reclamation-date').value=r.date;document.getElementById('edit-reclamation-numero').value=r.numero;document.getElementById('edit-reclamation-statut').value=r.statut;document.getElementById('edit-reclamation-description').value=r.description||'';document.getElementById('edit-reclamation-client').value=r.client||'';openModal('modal-edit-reclamation');}
+function updateReclamation(){const id=parseInt(document.getElementById('edit-reclamation-id').value);const i=reclamations.findIndex(r=>r.id===id);if(i!==-1){reclamations[i]={...reclamations[i],date:document.getElementById('edit-reclamation-date').value,numero:document.getElementById('edit-reclamation-numero').value,statut:document.getElementById('edit-reclamation-statut').value,description:document.getElementById('edit-reclamation-description').value,client:document.getElementById('edit-reclamation-client').value};saveReclamationsToStorage();loadReclamations();closeModal('modal-edit-reclamation');toast('✅ Réclamation modifiée !');}}
+function saveReclamation(){const date=document.getElementById('reclamation-date').value,numero=document.getElementById('reclamation-numero').value.trim();if(!date||!numero){toast('Date et numéro requis','error');return;}reclamations.unshift({id:Date.now(),date,numero,statut:document.getElementById('reclamation-statut').value,description:document.getElementById('reclamation-description').value,client:document.getElementById('reclamation-client').value});saveReclamationsToStorage();loadReclamations();closeModal('modal-reclamation');['reclamation-date','reclamation-numero','reclamation-description','reclamation-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});toast('✅ Réclamation ajoutée !');}
+function deleteReclamation(id){if(!confirm('Supprimer ?'))return;reclamations=reclamations.filter(r=>r.id!==id);saveReclamationsToStorage();loadReclamations();toast('Réclamation supprimée');}
+
+/* ══ INTERVENTIONS ══════════════════════════════════ */
+async function loadInterventions() {
+  const ticket = document.getElementById('filter-ticket')?.value || '';
+  try {
+    const data = await apiFetch(`/interventions/${ticket ? `?ticket=${ticket}` : ''}`);
+    const list = Array.isArray(data) ? data : (data.results || []);
+    const body = document.getElementById('interventions-body');
+    if (!list.length) {
+      body.innerHTML = '<div class="empty">Aucune intervention</div>';
+      return;
+    }
+    const isAdmin = currentUser?.role === 'admin';
+    
+    body.innerHTML = `<table><thead>
+      <tr>
+        <th>#</th>
+        <th>Ticket</th>
+        <th>Technicien</th>
+        <th>Opérateur</th>
+        <th>Type</th>
+        <th>Statut</th>
+        <th>Date</th>
+        ${isAdmin ? '<th>CA (€)</th><th>Gain Tech (€)</th>' : '<th>Mon gain (€)</th>'}
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${list.map(i => {
+        const g = i.gain_technicien || i.cout_technicien || 0;
+        const c = i.ca_client || i.chiffre_affaires || 0;
+        const statutOk = i.statut_nom === 'Réussie' || i.statut_nom === 'reussie';
+        const gainCell = `<td class="mono" style="color:${statutOk ? 'var(--accent2)' : 'var(--text3)'}">
+          ${statutOk ? parseFloat(g).toFixed(2) + ' €' : '—'}
+        </td>`;
+        return `
+          <tr>
+            <td class="mono">#${i.id}</td>
+            <td class="mono">${esc(i.ticket_id || '—')}</td>
+            <td>${esc(i.technicien_nom || '—')}</td>
+            <td>${esc(i.operateur_nom || '—')}</td>
+            <td>${esc(i.type_nom || '—')}</td>
+            <td><span class="badge badge-blue">${esc(i.statut_nom || '—')}</span></td>
+            <td>${new Date(i.date_intervention).toLocaleDateString('fr-FR')}</td>
+            ${isAdmin ? `<td class="mono">${parseFloat(c).toFixed(2)} €</td>${gainCell}` : gainCell}
+            <td>
+              <div style="display:flex;gap:4px">
+                <button class="btn-sm" style="padding:4px 8px;font-size:11px" 
+                  onclick='openEditIntervention(${JSON.stringify(i)})'>✏️</button>
+                ${isAdmin ? `
+                  <button class="btn-sm danger" style="padding:4px 8px;font-size:11px;background:var(--danger)" 
+                    onclick="deleteIntervention(${i.id})">🗑</button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('')}
+    </tbody>
+    `;
+  } catch(e) { 
+    console.error('[loadInterventions]', e);
+    document.getElementById('interventions-body').innerHTML = '<div class="empty">Erreur de chargement</div>';
+  }
+}
+
+// ✅ Fonction pour supprimer une intervention
+async function deleteIntervention(id) {
+  if (!confirm('⚠️ Êtes-vous sûr de vouloir supprimer cette intervention ? Cette action est irréversible.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API}/interventions/${id}/`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Erreur lors de la suppression');
+    }
+    
+    toast('✅ Intervention supprimée avec succès !');
+    loadInterventions();
+    loadDashboard(); // Rafraîchir aussi le dashboard
+    loadConstats(); // Rafraîchir les constats si besoin
+    
+  } catch(e) {
+    console.error('[deleteIntervention]', e);
+    toast('❌ Erreur lors de la suppression: ' + e.message, 'error');
+  }
+}
+// ✅ CHANGE 5 — Fonction d'édition d'une intervention existante
+async function openEditIntervention(i) {
+  await openNewInterventionModal();
+  document.getElementById('nv-date').value = i.date_intervention.split('T')[0];
+  document.getElementById('nv-ticket').value = i.ticket_id || '';
+  document.getElementById('nv-commentaire').value = i.commentaire || '';
+  if (i.operateur) document.getElementById('nv-operateur').value = i.operateur;
+  if (i.type_intervention) document.getElementById('nv-type').value = i.type_intervention;
+  if (i.statut) document.getElementById('nv-statut').value = i.statut;
+
+  // Changer le titre et le bouton pour la modification
+  document.querySelector('#modal-nouvelle-intervention h3').textContent = '✏️ Modifier l\'intervention';
+  const btn = document.querySelector('#modal-nouvelle-intervention .modal-actions .btn-sm');
+  if (btn) {
+    btn.textContent = '💾 Modifier';
+    btn.onclick = async () => {
+      const payload = {
+        date_intervention: document.getElementById('nv-date').value + 'T08:00:00',
+        ticket_id: document.getElementById('nv-ticket').value,
+        commentaire: document.getElementById('nv-commentaire').value,
+      };
+      const op=document.getElementById('nv-operateur').value;
+      const type=document.getElementById('nv-type').value;
+      const stat=document.getElementById('nv-statut').value;
+      if(op) payload.operateur=op;
+      if(type) payload.type_intervention=type;
+      if(stat) payload.statut=stat;
+      try {
+        await apiFetch(`/interventions/${i.id}/`, {method:'PATCH', body:JSON.stringify(payload)});
+        closeModal('modal-nouvelle-intervention');
+        clearInterventionForm();
+        loadInterventions(); loadDashboard();
+        toast('✅ Intervention modifiée !');
+      } catch { toast('Erreur.', 'error'); }
+    };
+  }
+}
+
+async function openNewInterventionModal() {
+  try {
+    const [types,ops,stats]=await Promise.all([apiFetch('/interventions/types/'),apiFetch('/interventions/operateurs/'),apiFetch('/interventions/statuts/')]);
+    const tl=Array.isArray(types)?types:(types.results||[]),ol=Array.isArray(ops)?ops:(ops.results||[]),sl=Array.isArray(stats)?stats:(stats.results||[]);
+    let bt={};
+    try{const bts=await apiFetch('/interventions/baremes/technicien/');(Array.isArray(bts)?bts:(bts.results||[])).forEach(b=>{bt[b.type_intervention]=b.prix;});}catch{}
+    document.getElementById('nv-type').innerHTML='<option value="">— Choisir —</option>'+tl.map(t=>`<option value="${t.id}" data-prix="${bt[t.id]||0}">${esc(t.nom)}${bt[t.id]?` (💰 ${bt[t.id]} €)`:''}</option>`).join('');
+    document.getElementById('nv-operateur').innerHTML='<option value="">— Choisir —</option>'+ol.map(o=>`<option value="${o.id}">${esc(o.nom)}</option>`).join('');
+    document.getElementById('nv-statut').innerHTML='<option value="">— Choisir —</option>'+sl.map(s=>`<option value="${s.id}">${esc(s.nom)}</option>`).join('');
+    const ts=document.getElementById('nv-type');
+    if(ts&&!document.getElementById('prix-info')){const pi=document.createElement('div');pi.id='prix-info';pi.style.cssText='margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px;font-size:12px;color:var(--accent2);display:none';ts.parentNode.appendChild(pi);ts.addEventListener('change',()=>{const s=ts.options[ts.selectedIndex],p=s.getAttribute('data-prix'),d=document.getElementById('prix-info');if(p&&parseFloat(p)>0){d.innerHTML=`💰 Rémunération : <strong>${parseFloat(p).toFixed(2)} €</strong>`;d.style.display='block';}else{d.style.display='none';}});}
+  } catch(e) { console.error(e); }
+  // Réinitialiser le titre et bouton au cas où on vient d'openEditIntervention
+  document.querySelector('#modal-nouvelle-intervention h3').textContent = '🔧 Nouvelle Intervention';
+  const btn = document.querySelector('#modal-nouvelle-intervention .modal-actions .btn-sm');
+  if (btn) { btn.textContent = '✅ Enregistrer'; btn.onclick = saveNewIntervention; }
+  document.getElementById('nv-date').value=new Date().toISOString().split('T')[0];
+  openModal('modal-nouvelle-intervention');
+}
+async function saveNewIntervention() {
+  const date=document.getElementById('nv-date').value,ticket=document.getElementById('nv-ticket').value.trim();
+  if(!date||!ticket){toast('Date et ticket requis.','error');return;}
+  const payload={date_intervention:date+'T08:00:00',ticket_id:ticket,commentaire:document.getElementById('nv-commentaire').value};
+  const op=document.getElementById('nv-operateur').value,type=document.getElementById('nv-type').value,stat=document.getElementById('nv-statut').value;
+  if(op)payload.operateur=op;if(type)payload.type_intervention=type;if(stat)payload.statut=stat;
+  try{await apiFetch('/interventions/',{method:'POST',body:JSON.stringify(payload)});closeModal('modal-nouvelle-intervention');clearInterventionForm();loadInterventions();loadDashboard();toast('✅ Intervention enregistrée !');}
+  catch{toast('Erreur.','error');}
+}
+function clearInterventionForm(){['nv-ticket','nv-commentaire'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});['nv-operateur','nv-type','nv-statut'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
+
+/* ══ CONSTATS ═══════════════════════════════════════ */
+async function loadConstats() {
+  try {
+    const data=await apiFetch('/constats/');
+    const list=Array.isArray(data)?data:(data.results||[]);
+    const body=document.getElementById('constats-body');
+    if(!list.length){body.innerHTML='<div class="empty">Aucun constat</div>';return;}
+    const sb=s=>({brouillon:'badge-grey',soumis:'badge-blue',valide:'badge-green',rejete:'badge-red'}[s]||'badge-grey');
+    const sl=s=>({brouillon:'Brouillon',soumis:'📤 Soumis',valide:'✓ Validé',rejete:'✗ Rejeté'}[s]||s);
+    const isAdmin=currentUser?.role==='admin';
+    const pdfStore = JSON.parse(localStorage.getItem('omega_pdfs') || '{}');
+    body.innerHTML=`<table><thead><tr><th>#</th><th>Technicien</th><th>Catégorie</th><th>Client</th><th>Photos</th><th>Signé</th><th>Statut</th><th>PDF</th><th>Actions</th></tr></thead><tbody>
+      ${list.map(c=>{
+        const na=c.photos_avant?c.photos_avant.length:0,np=c.photos_apres?c.photos_apres.length:0;
+        let pu = c.pdf_url||c.pdf_file||'';
+        const localPdf = pdfStore[c.id];
+        const pdfLink = pu
+          ? `<a href="${pu}" target="_blank" class="pdf-link">📄 PDF</a>`
+          : localPdf
+            ? `<a href="${localPdf.dataUrl}" download="constat_${c.id}.pdf" class="pdf-link">📄 PDF local</a>`
+            : '<span style="color:var(--text3);font-size:12px">—</span>';
+        const clientNom = c.nom_signataire || (localPdf?.signataire) || '';
+        return `<tr>
+          <td class="mono">#${c.id}</td>
+          <td>${esc(c.technicien_nom||'—')}</td>
+          <td>${esc((c.categorie||'').replace(/_/g,' '))}</td>
+          <td>${clientNom ? `<span style="font-size:12px;font-weight:500">${esc(clientNom)}</span>` : '<span style="color:var(--text3);font-size:12px">—</span>'}</td>
+          <td>${na>0||np>0?`<button class="btn-sm" style="padding:4px 8px;font-size:11px" onclick="voirPhotos(${c.id})">📷 ${na}🔴 ${np}🟢</button>`:'<span style="color:var(--text3);font-size:12px">—</span>'}</td>
+          <td><span class="badge ${c.est_signe?'badge-green':'badge-grey'}">${c.est_signe?'✓ Signé':'—'}</span></td>
+          <td><span class="badge ${sb(c.statut)}">${sl(c.statut)}</span>${c.commentaire_admin?`<div style="font-size:10px;color:var(--text3);margin-top:2px" title="${esc(c.commentaire_admin)}">${esc(c.commentaire_admin.substring(0,30))}…</div>`:''}</td>
+          <td>${pdfLink}</td>
+          <td>
+            ${isAdmin&&c.statut==='soumis'?`<button class="btn-sm green" style="padding:4px 10px;font-size:11px" onclick="ouvrirGererConstat(${c.id},'${esc(c.technicien_nom||'')}','${pu}',${c.id})">Gérer</button>`:''}
+            ${!isAdmin&&c.statut==='brouillon'?`<button class="btn-sm orange" style="padding:4px 10px;font-size:11px" onclick="soumettreConstat(${c.id})">📤 Soumettre</button>`:''}
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`;
+  } catch(e){console.error(e);document.getElementById('constats-body').innerHTML='<div class="empty">Erreur de chargement</div>';}
+}
+async function voirPhotos(id) {
+  try {
+    const c=await apiFetch(`/constats/${id}/`);
+    document.getElementById('voir-photos-title').textContent=`📷 Constat #${id}`;
+    const makeGrid=(photos,grid)=>{if(!photos||!photos.length){grid.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px">Aucune photo</div>';return;}grid.innerHTML=photos.map(p=>{let url=p.photo||'';if(url&&!url.startsWith('http'))url=`http://127.0.0.1:8000${url.startsWith('/')?'':'/'}${url}`;return`<div class="photo-viewer-thumb" onclick="openLightbox('${url}')"><img src="${url}" loading="lazy"></div>`;}).join('');};
+    makeGrid(c.photos_avant,document.getElementById('voir-avant-grid'));
+    makeGrid(c.photos_apres,document.getElementById('voir-apres-grid'));
+    openModal('modal-voir-photos');
+  } catch{toast('Impossible de charger les photos.','error');}
+}
+async function soumettreConstat(id) {
+  if(!confirm('Soumettre ce constat à l\'administrateur ?'))return;
+  try{const res=await fetch(`${API}/constats/${id}/soumettre/`,{method:'POST',headers:{'Authorization':`Bearer ${token}`}});if(!res.ok){const e=await res.json();throw new Error(e.detail||'Erreur');}toast('✅ Constat soumis !');loadConstats();loadPdfPending();}
+  catch(e){toast('❌ '+e.message,'error');}
+}
+
+/* ══ PHOTOS ═════════════════════════════════════════ */
+function renderPhotosGrid(side) {
+  const grid=document.getElementById(`photos-grid-${side}`);
+  const photos=constatPhotos[side];
+  document.getElementById(`count-${side}`).textContent=photos.length;
+  if(!photos.length){grid.innerHTML=`<div class="photos-empty">Aucune photo ${side}</div>`;return;}
+  grid.innerHTML=photos.map((p,i)=>`<div class="photo-thumb"><img src="${p.dataUrl}" onclick="openLightbox('${p.dataUrl}')"><button class="rm" onclick="removePhoto('${side}',${i})">✕</button></div>`).join('');
+}
+function removePhoto(side,i){constatPhotos[side].splice(i,1);renderPhotosGrid(side);}
+function handlePhotos(event,side) {
+  const files=Array.from(event.target.files);
+  const rem=10-constatPhotos[side].length;
+  if(rem<=0){toast('Max 10 photos.','error');return;}
+  files.slice(0,rem).forEach(file=>{const reader=new FileReader();reader.onload=e=>{constatPhotos[side].push({dataUrl:e.target.result,file});renderPhotosGrid(side);};reader.readAsDataURL(file);});
+  if(files.length>rem)toast(`Seulement ${rem} ajoutée(s).`,'error');
+  event.target.value='';
+}
+
+/* ══ CAMÉRA ══════════════════════════════════════════ */
+async function openCamera(side) {
+  cameraCtx=side;
+  try{cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});document.getElementById('camera-video').srcObject=cameraStream;document.getElementById('camera-overlay').classList.add('open');document.getElementById('camera-snap-btn').onclick=snapPhoto;}
+  catch{const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';inp.onchange=ev=>handlePhotos(ev,side);inp.click();}
+}
+function snapPhoto(){const video=document.getElementById('camera-video'),canvas=document.getElementById('camera-canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0);canvas.toBlob(blob=>{if(!blob)return;const file=new File([blob],`photo_${cameraCtx}_${Date.now()}.jpg`,{type:'image/jpeg'});const dataUrl=canvas.toDataURL('image/jpeg',0.85);if(constatPhotos[cameraCtx].length<10){constatPhotos[cameraCtx].push({dataUrl,file});renderPhotosGrid(cameraCtx);}closeCamera();},'image/jpeg',0.85);}
+function closeCamera(){if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;}document.getElementById('camera-overlay').classList.remove('open');}
+
+/* ══ SIGNATURE ═══════════════════════════════════════ */
+function initSignature() {
+  sigCanvas=document.getElementById('sig-canvas');if(!sigCanvas)return;
+  function setup(){const w=document.getElementById('sig-wrapper');const r=w.getBoundingClientRect();const dpr=window.devicePixelRatio||1;const W=r.width||500;sigCanvas.width=W*dpr;sigCanvas.height=160*dpr;sigCanvas.style.width=W+'px';sigCanvas.style.height='160px';sigCtx=sigCanvas.getContext('2d');sigCtx.scale(dpr,dpr);sigCtx.fillStyle='#fff';sigCtx.fillRect(0,0,W,160);sigCtx.strokeStyle='#111';sigCtx.lineWidth=2.5;sigCtx.lineCap='round';sigCtx.lineJoin='round';}
+  setup();
+  function pos(e){const r=sigCanvas.getBoundingClientRect();const s=e.touches?e.touches[0]:e;return{x:s.clientX-r.left,y:s.clientY-r.top};}
+  sigCanvas.addEventListener('mousedown',e=>{sigDrawing=true;const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);});
+  sigCanvas.addEventListener('mousemove',e=>{if(!sigDrawing)return;e.preventDefault();const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();if(!sigHasData){sigHasData=true;document.getElementById('sig-status').textContent='✅ Signature enregistrée';document.getElementById('sig-status').className='sig-status ok';document.getElementById('sig-wrapper').classList.add('signed');}});
+  sigCanvas.addEventListener('mouseup',()=>sigDrawing=false);
+  sigCanvas.addEventListener('mouseleave',()=>sigDrawing=false);
+  sigCanvas.addEventListener('touchstart',e=>{sigDrawing=true;const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);},{passive:false});
+  sigCanvas.addEventListener('touchmove',e=>{if(!sigDrawing)return;e.preventDefault();const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();if(!sigHasData){sigHasData=true;document.getElementById('sig-status').textContent='✅ Signature';document.getElementById('sig-status').className='sig-status ok';document.getElementById('sig-wrapper').classList.add('signed');}},{passive:false});
+  sigCanvas.addEventListener('touchend',()=>sigDrawing=false);
+}
+function clearSignature(){if(!sigCtx||!sigCanvas)return;const dpr=window.devicePixelRatio||1;sigCtx.fillStyle='#fff';sigCtx.fillRect(0,0,sigCanvas.width/dpr,sigCanvas.height/dpr);sigHasData=false;document.getElementById('sig-status').textContent='✏️ Le client signe ici';document.getElementById('sig-status').className='sig-status';document.getElementById('sig-wrapper').classList.remove('signed');}
+
+/* ══ SAVE CONSTAT ════════════════════════════════════ */
+async function saveConstat() {
+  const categorie = document.getElementById('constat-categorie').value;
+  const errEl = document.getElementById('constat-error');
+  errEl.style.display = 'none';
+  if (!categorie) { errEl.textContent = 'Veuillez choisir une catégorie.'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('constat-submit-btn');
+  btn.disabled = true; btn.textContent = '⏳ Enregistrement...';
+
+  const fd = new FormData();
+  fd.append('categorie', categorie);
+  const desc = document.getElementById('constat-description').value.trim();
+  if (desc) fd.append('description', desc);
+  const intId = document.getElementById('constat-intervention-id').value.trim();
+  if (intId && !isNaN(parseInt(intId))) fd.append('intervention', parseInt(intId));
+  constatPhotos.avant.forEach(p => fd.append('photos_avant', p.file));
+  constatPhotos.apres.forEach(p => fd.append('photos_apres', p.file));
+
+  const signataire = document.getElementById('constat-signataire').value.trim();
+
+  let sigDataUrl = null;
+  let sigBlob = null;
+  if (sigHasData && sigCanvas) {
+    try {
+      sigDataUrl = sigCanvas.toDataURL('image/png');
+      sigBlob = await new Promise(r => sigCanvas.toBlob(r, 'image/png'));
+      if (sigBlob) {
+        fd.append('signature', sigBlob, 'signature.png');
+        if (signataire) fd.append('nom_signataire', signataire);
+        fd.append('est_signe', 'true');
+      }
+    } catch(e) { console.warn('[sig capture]', e); }
+  }
+
+  try {
+    const res = await fetch(`${API}/constats/`, { method:'POST', headers:{'Authorization':`Bearer ${token}`}, body:fd });
+    if (!res.ok) {
+      const err = await res.json();
+      errEl.textContent = JSON.stringify(err); errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = '📤 Enregistrer + Envoyer à l\'admin'; return;
+    }
+    const constat = await res.json();
+    toast('✅ Constat enregistré !');
+    btn.textContent = '⏳ Génération PDF...';
+
+    let pdfBlob = null;
+    let pdfDataUrl = null;
+    try {
+      pdfBlob = await genererPDF(constat, signataire, sigDataUrl);
+      pdfDataUrl = await new Promise(r => {
+        const fr = new FileReader();
+        fr.onload = e => r(e.target.result);
+        fr.readAsDataURL(pdfBlob);
+      });
+    } catch(e) { console.error('[PDF gen]', e); toast('⚠️ PDF non généré : ' + e.message, 'error'); }
+
+    if (pdfBlob) {
+      btn.textContent = '⏳ Envoi PDF à l\'admin...';
+
+      // ✅ CHANGE 7 — Stockage localStorage AVANT upload (garantit visibilité admin)
+      try {
+        const pdfStore = JSON.parse(localStorage.getItem('omega_pdfs') || '{}');
+        pdfStore[constat.id] = {
+          dataUrl: pdfDataUrl,
+          date: new Date().toISOString(),
+          technicien: `${currentUser?.first_name||''} ${currentUser?.last_name||''}`.trim() || currentUser?.username,
+          categorie: categorie,
+          signataire: signataire || null
+        };
+        localStorage.setItem('omega_pdfs', JSON.stringify(pdfStore));
+      } catch(e) { console.warn('[pdf localStorage]', e); }
+
+      // Upload PDF → attendre la réponse
+      let pdfUploaded = false;
+      for (const ep of [`/constats/${constat.id}/recevoir-pdf/`, `/constats/${constat.id}/upload-pdf/`]) {
+        try {
+          const pf = new FormData();
+          pf.append('pdf_file', pdfBlob, `constat_${constat.id}.pdf`);
+          const r = await fetch(`${API}${ep}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: pf
+          });
+          if (r.ok) { pdfUploaded = true; console.log('[pdf upload] ✓', ep); break; }
+          console.warn('[pdf upload]', ep, r.status);
+        } catch(e) { console.warn('[pdf upload]', ep, e.message); }
+      }
+
+      // Soumettre à l'admin SEULEMENT après l'upload
+      try {
+        const res = await fetch(`${API}/constats/${constat.id}/soumettre/`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          toast('📄 PDF envoyé à l\'admin !');
+        } else {
+          const err = await res.json();
+          console.warn('[soumettre]', err);
+          toast('⚠️ Constat enregistré mais soumission partielle', 'error');
+        }
+      } catch(e) { console.warn('[soumettre]', e); }
+
+      // Télécharger localement pour le technicien
+      const dlUrl = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = dlUrl; a.download = `constat_${constat.id}.pdf`;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(dlUrl);
+    }
+
+    closeModal('modal-nouveau-constat');
+    clearConstatForm();
+    loadConstats();
+    loadPdfPending();
+  } catch(e) {
+    console.error(e);
+    errEl.textContent = 'Erreur : ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 Enregistrer + Envoyer à l\'admin';
+  }
+}
+
+/* ══ PDF GÉNÉRATION ══════════════════════════════════ */
+async function genererPDF(constat, signataire, sigDataUrl) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const W = 210, M = 18;
+  let y = 20;
+
+  // ✅ CHANGE 1 — EN-TÊTE : COMXTECH centré, OMEGA à gauche, CONSTAT à droite
+  doc.setFillColor(79, 142, 247);
+  doc.rect(0, 0, W, 34, 'F');
+  doc.setTextColor(255, 255, 255);
+  // COMXTECH au centre — en grand
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('COMXTECH', W / 2, 13, { align: 'center' });
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Gestion des interventions terrain', W / 2, 20, { align: 'center' });
+  // OMEGA à gauche (plus petit)
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('OMEGA', M, 28);
+  // CONSTAT à droite
+  doc.setFontSize(15);
+  doc.text('CONSTAT', W - M, 14, { align: 'right' });
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Réf. #${constat.id}`, W - M, 21, { align: 'right' });
+  doc.text(new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' }), W - M, 28, { align: 'right' });
+
+  y = 44;
+  doc.setTextColor(30, 33, 46);
+
+  // ── BLOC INFOS PRINCIPALES ──
+  doc.setFillColor(245, 247, 255);
+  doc.roundedRect(M, y, W - 2*M, 28, 2, 2, 'F');
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(139, 144, 167);
+  doc.text('CATÉGORIE', M + 6, y + 7);
+  doc.text('DESCRIPTION', M + 6, y + 17);
+  const catSel = document.getElementById('constat-categorie');
+  const catLabel = catSel?.options[catSel.selectedIndex]?.text || (constat.categorie||'').replace(/_/g,' ') || '—';
+  doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 33, 46); doc.setFontSize(10);
+  doc.text(catLabel, M + 6, y + 13);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  const descText = (constat.description || '—').substring(0, 100);
+  doc.text(descText, M + 6, y + 23);
+  y += 36;
+
+  // ── BLOC TECHNICIEN + DATE ──
+  doc.setFillColor(240, 242, 248);
+  doc.roundedRect(M, y, W - 2*M, 22, 2, 2, 'F');
+  const techNom = `${currentUser?.first_name||''} ${currentUser?.last_name||''}`.trim() || currentUser?.username || '—';
+  const dateConstat = new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  const heureConstat = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(139, 144, 167);
+  doc.text('TECHNICIEN', M + 6, y + 7);
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 33, 46); doc.setFontSize(10);
+  doc.text(techNom, M + 6, y + 14);
+  const midX = M + (W - 2*M) / 2 + 4;
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(139, 144, 167);
+  doc.text('DATE DU CONSTAT', midX, y + 7);
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 33, 46); doc.setFontSize(10);
+  doc.text(`${dateConstat} à ${heureConstat}`, midX, y + 14);
+  y += 30;
+
+  // ── BLOC CLIENT ──
+  if (signataire) {
+    doc.setFillColor(255, 248, 240);
+    doc.roundedRect(M, y, W - 2*M, 16, 2, 2, 'F');
+    doc.setDrawColor(247, 127, 79); doc.setLineWidth(0.3);
+    doc.roundedRect(M, y, W - 2*M, 16, 2, 2, 'S');
+    doc.setLineWidth(0.1);
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(247, 127, 79);
+    doc.text('CLIENT / SIGNATAIRE', M + 6, y + 6);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 33, 46); doc.setFontSize(11);
+    doc.text(signataire, M + 6, y + 13);
+    y += 24;
+  }
+
+  // ── PHOTOS AVANT / APRÈS ──
+  const insertPhotos = async (photos, title, rgb) => {
+    if (!photos.length) return;
+    if (y + 44 > 265) { doc.addPage(); y = 20; }
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+    doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+    doc.setGState && doc.setGState(doc.GState({ opacity: 0.08 }));
+    doc.roundedRect(M, y, W - 2*M, 7, 1, 1, 'F');
+    doc.setGState && doc.setGState(doc.GState({ opacity: 1 }));
+    doc.text(`▶  ${title} (${photos.length} photo${photos.length > 1 ? 's' : ''})`, M + 4, y + 5);
+    y += 10;
+    const PW = 43, PH = 34, gap = 5, perRow = 4;
+    let xp = M;
+    for (let i = 0; i < photos.length; i++) {
+      if (i > 0 && i % perRow === 0) { xp = M; y += PH + 6; }
+      if (y + PH + 10 > 265) { doc.addPage(); y = 20; xp = M; }
+      try { doc.addImage(photos[i].dataUrl, 'JPEG', xp, y, PW, PH, '', 'FAST'); }
+      catch(e) { doc.setFillColor(200,200,200); doc.rect(xp,y,PW,PH,'F'); }
+      xp += PW + gap;
+    }
+    y += PH + 12;
+  };
+
+  await insertPhotos(constatPhotos.avant, 'Photos AVANT', [247, 79, 79]);
+  await insertPhotos(constatPhotos.apres, 'Photos APRÈS', [56, 217, 169]);
+
+  // ── BLOC SIGNATURE CLIENT ──
+  const hasSignature = sigHasData && sigDataUrl && sigDataUrl.length > 100;
+  if (hasSignature || signataire) {
+    if (y + 60 > 270) { doc.addPage(); y = 20; }
+    doc.setDrawColor(56, 217, 169); doc.setLineWidth(0.5);
+    doc.setFillColor(245, 255, 252);
+    doc.roundedRect(M, y, W - 2*M, hasSignature ? 58 : 22, 2, 2, 'FD');
+    doc.setLineWidth(0.1);
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(56, 217, 169);
+    doc.text('✓  SIGNATURE CLIENT', M + 6, y + 7);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 33, 46);
+    doc.setFontSize(9);
+    if (signataire) {
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Signé par : ${signataire}`, M + 6, y + 14);
+      doc.setFont('helvetica', 'normal');
+    }
+    doc.setFontSize(8); doc.setTextColor(100, 110, 130);
+    doc.text(`Le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`, M + 6, y + (signataire ? 21 : 14));
+    if (hasSignature) {
+      try {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(M + 6, y + 26, W - 2*M - 12, 24, 'F');
+        doc.addImage(sigDataUrl, 'PNG', M + 6, y + 26, W - 2*M - 12, 24);
+      } catch(e) {
+        console.warn('[sig PDF addImage]', e);
+        doc.setFontSize(8); doc.setTextColor(150,150,150);
+        doc.text('[Signature non rendue]', M + 10, y + 40);
+      }
+    }
+    y += hasSignature ? 66 : 30;
+  }
+
+  // ── PIED DE PAGE ──
+  const total = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(220, 224, 240); doc.setLineWidth(0.3);
+    doc.line(M, 284, W - M, 284);
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(170, 174, 195);
+    doc.text(`COMXTECH / OMEGA — Constat #${constat.id} — Technicien : ${techNom} — ${new Date().toLocaleDateString('fr-FR')} — Page ${p}/${total}`, W/2, 289, { align:'center' });
+  }
+
+  return doc.output('blob');
+}
+function clearConstatForm(){['constat-intervention-id','constat-description','constat-signataire'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('constat-categorie').value='';constatPhotos.avant=[];constatPhotos.apres=[];renderPhotosGrid('avant');renderPhotosGrid('apres');clearSignature();document.getElementById('constat-error').style.display='none';}
+
+/* ══ TECHNICIENS ════════════════════════════════════ */
+async function loadTechniciens() {
+  try{const data=await apiFetch('/auth/users/');const list=Array.isArray(data)?data:(data.results||[]);const body=document.getElementById('techniciens-body');if(!list.length){body.innerHTML='<div class="empty">Aucun utilisateur</div>';return;}body.innerHTML=`<table><thead><tr><th>Nom</th><th>Identifiant</th><th>Rôle</th><th>Téléphone</th><th>Statut</th><th>Actions</th></tr></thead><tbody>${list.map(u=>`<tr><td>${esc(u.first_name||'')} ${esc(u.last_name||'')}</td><td class="mono">${esc(u.username)}</td><td><span class="badge ${u.role==='admin'?'badge-orange':'badge-blue'}">${u.role}</span></td><td>${esc(u.telephone||'—')}</td><td><span class="badge ${u.est_actif?'badge-green':'badge-red'}">${u.est_actif?'Actif':'Inactif'}</span></td><td><div style="display:flex;gap:4px"><button class="btn-sm" style="padding:5px 8px" onclick='openEditUser(${JSON.stringify(u)})'>✏️</button><button class="btn-sm orange" style="padding:5px 8px" onclick="resetPassword(${u.id},'${esc(u.username)}')">🔑</button><button class="btn-sm ${u.est_actif?'danger':''}" style="padding:5px 8px;${!u.est_actif?'background:var(--accent2);color:#0f1117':''}" onclick="toggleUser(${u.id},${u.est_actif})">${u.est_actif?'🚫':'✅'}</button></div></td></tr>`).join('')}</tbody></table>`;}catch{}
+}
+function openEditUser(u) {
+  document.getElementById('edit-user-id').value = u.id;
+  document.getElementById('edit-firstname').value = u.first_name || '';
+  document.getElementById('edit-lastname').value = u.last_name || '';
+  document.getElementById('edit-email').value = u.email || '';
+  document.getElementById('edit-tel').value = u.telephone || '';
+  document.getElementById('edit-role').value = u.role || 'technicien';
+  
+  // ✅ Charger matricule et gasoil
+  document.getElementById('edit-matricule').value = u.matricule_voiture || '';
+  document.getElementById('edit-gasoil').value = u.gasoil_mensuel || '';
+  document.getElementById('edit-drive').value = u.lien_drive || '';
+  openModal('modal-edit-user');
+}
+
+async function saveEditUser() {
+  const id = document.getElementById('edit-user-id').value;
+  const btn = document.querySelector('#modal-edit-user .btn-sm');
+  const originalText = btn ? btn.textContent : 'Enregistrer';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement...'; }
+  
+  try {
+    const payload = {
+      first_name: document.getElementById('edit-firstname').value,
+      last_name: document.getElementById('edit-lastname').value,
+      email: document.getElementById('edit-email').value,
+      telephone: document.getElementById('edit-tel').value,
+      role: document.getElementById('edit-role').value
+    };
+    
+    // ✅ Ajouter matricule et gasoil
+    const matricule = document.getElementById('edit-matricule').value.trim();
+    const gasoil = document.getElementById('edit-gasoil').value;
+    
+    if (matricule) payload.matricule_voiture = matricule;
+    if (gasoil && !isNaN(parseFloat(gasoil))) payload.gasoil_mensuel = parseFloat(gasoil);
+    
+    const drive = document.getElementById('edit-drive').value.trim();
+payload.lien_drive = drive; // envoie même si vide (pour permettre de l'effacer)
+    const response = await fetch(`${API}/auth/users/${id}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(JSON.stringify(error));
+    }
+    
+    closeModal('modal-edit-user');
+    loadTechniciens();
+    loadTechniciensForSelect();
+    toast('✅ Utilisateur modifié avec succès !');
+    
+  } catch(e) {
+    console.error('[saveEditUser]', e);
+    toast('❌ Erreur lors de la modification', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
+  }
+}
+async function resetPassword(id,username){const p=prompt(`Nouveau mot de passe pour ${username} (8 car. min) :`);if(!p)return;if(p.length<8){toast('8 min !','error');return;}try{await apiFetch(`/auth/users/${id}/reset-password/`,{method:'POST',body:JSON.stringify({nouveau_mot_de_passe:p})});toast('✅ Mot de passe mis à jour !');}catch{toast('Erreur.','error');}}
+async function toggleUser(id,actif){if(!confirm(`${actif?'Désactiver':'Réactiver'} ?`))return;try{await apiFetch(`/auth/users/${id}/`,{method:'PATCH',body:JSON.stringify({est_actif:!actif,is_active:!actif})});loadTechniciens();loadTechniciensForSelect();}catch{toast('Erreur.','error');}}
+
+/* ══ BAREMES ════════════════════════════════════════ */
+async function loadBaremesTech(){try{const data=await apiFetch('/interventions/baremes/technicien/');const list=Array.isArray(data)?data:(data.results||[]);const body=document.getElementById('baremes-tech-body');if(!list.length){body.innerHTML='<div class="empty">Aucun barème</div>';return;}body.innerHTML=`<table><thead><tr><th>Type</th><th>Prix</th><th></th></tr></thead><tbody>${list.map(b=>`<tr><td>${esc(b.type_nom)}</td><td class="mono">${parseFloat(b.prix).toFixed(2)} €</td><td><button class="btn-icon" onclick="deleteBaremeTech(${b.id})">🗑</button></td></tr>`).join('')}</tbody></table>`;}catch{}}
+async function loadBaremesOp(){const opId=document.getElementById('filter-operateur')?.value||'';try{const data=await apiFetch(`/interventions/baremes/operateur/${opId?`?operateur=${opId}`:''}`);const list=Array.isArray(data)?data:(data.results||[]);const body=document.getElementById('baremes-op-body');if(!list.length){body.innerHTML='<div class="empty">Aucun barème</div>';return;}body.innerHTML=`<table><thead><tr><th>Type</th><th>Opérateur</th><th>Prix</th><th></th></tr></thead><tbody>${list.map(b=>`<tr><td>${esc(b.type_nom)}</td><td>${esc(b.operateur_nom)}</td><td class="mono">${parseFloat(b.prix).toFixed(2)} €</td><td><button class="btn-icon" onclick="deleteBaremeOp(${b.id})">🗑</button></td></tr>`).join('')}</tbody></table>`;}catch{}}
+async function deleteBaremeTech(id){if(!confirm('Supprimer ?'))return;await fetch(`${API}/interventions/baremes/technicien/${id}/`,{method:'DELETE',headers:{'Authorization':`Bearer ${token}`}});loadBaremesTech();}
+async function deleteBaremeOp(id){if(!confirm('Supprimer ?'))return;await fetch(`${API}/interventions/baremes/operateur/${id}/`,{method:'DELETE',headers:{'Authorization':`Bearer ${token}`}});loadBaremesOp();}
+
+/* ══ LISTES ══════════════════════════════════════════ */
+async function loadListes(){await loadOperateurs();await loadTypes();await loadStatuts();}
+async function loadOperateurs(){try{const data=await apiFetch('/interventions/operateurs/');const list=Array.isArray(data)?data:(data.results||[]);const el=document.getElementById('operateurs-list');if(el)el.innerHTML=list.length?list.map(o=>`<div class="list-item"><span>${esc(o.nom)}</span><button class="btn-icon" onclick="deleteItem('operateurs',${o.id})">🗑</button></div>`).join(''):'<div style="color:var(--text3);font-size:13px">Aucun</div>';const s=document.getElementById('filter-operateur'),sb=document.getElementById('bo-op');if(s)s.innerHTML='<option value="">Tous</option>'+list.map(o=>`<option value="${o.id}">${esc(o.nom)}</option>`).join('');if(sb)sb.innerHTML=list.map(o=>`<option value="${o.id}">${esc(o.nom)}</option>`).join('');}catch{}}
+async function loadTypes(){try{const data=await apiFetch('/interventions/types/');const list=Array.isArray(data)?data:(data.results||[]);const el=document.getElementById('types-list');if(el)el.innerHTML=list.length?list.map(t=>`<div class="list-item"><span>${esc(t.nom)}</span><button class="btn-icon" onclick="deleteItem('types',${t.id})">🗑</button></div>`).join(''):'<div style="color:var(--text3);font-size:13px">Aucun</div>';['bt-type','bo-type'].forEach(id=>{const s=document.getElementById(id);if(s)s.innerHTML=list.map(t=>`<option value="${t.id}">${esc(t.nom)}</option>`).join('');});}catch{}}
+async function loadStatuts(){try{const data=await apiFetch('/interventions/statuts/');const list=Array.isArray(data)?data:(data.results||[]);const el=document.getElementById('statuts-list');if(el)el.innerHTML=list.length?list.map(s=>`<div class="list-item"><span>${esc(s.nom)}</span><button class="btn-icon" onclick="deleteItem('statuts',${s.id})">🗑</button></div>`).join(''):'<div style="color:var(--text3);font-size:13px">Aucun</div>';}catch{}}
+async function addOperateur(){const v=document.getElementById('new-operateur').value.trim();if(!v)return;await apiFetch('/interventions/operateurs/',{method:'POST',body:JSON.stringify({nom:v})});document.getElementById('new-operateur').value='';loadOperateurs();}
+async function addType(){const v=document.getElementById('new-type').value.trim();if(!v)return;await apiFetch('/interventions/types/',{method:'POST',body:JSON.stringify({nom:v})});document.getElementById('new-type').value='';loadTypes();}
+async function addStatut(){const v=document.getElementById('new-statut').value.trim();if(!v)return;await apiFetch('/interventions/statuts/',{method:'POST',body:JSON.stringify({nom:v})});document.getElementById('new-statut').value='';loadStatuts();}
+async function deleteItem(type,id){if(!confirm('Supprimer ?'))return;await fetch(`${API}/interventions/${type}/${id}/`,{method:'DELETE',headers:{'Authorization':`Bearer ${token}`}});if(type==='operateurs')loadOperateurs();else if(type==='types')loadTypes();else loadStatuts();}
+
+/* ══ PROFIL ══════════════════════════════════════════ */
+async function loadTechniciens() {
+  try {
+    const data = await apiFetch('/auth/users/');
+    const list = Array.isArray(data) ? data : (data.results || []);
+    const body = document.getElementById('techniciens-body');
+    if (!list.length) {
+      body.innerHTML = '<div class="empty">Aucun utilisateur</div>';
+      return;
+    }
+    
+    body.innerHTML = `<table><thead>
+      <tr>
+        <th>Nom</th>
+        <th>Identifiant</th>
+        <th>Rôle</th>
+        <th>Téléphone</th>
+        <th>🚗 Matricule</th>
+        <th>⛽ Gasoil (€/mois)</th>
+        <th>Statut</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${list.map(u => `
+        <tr>
+          <td><strong>${esc(u.first_name || '')} ${esc(u.last_name || '')}</strong></td>
+          <td class="mono">${esc(u.username)}</td>
+          <td><span class="badge ${u.role === 'admin' ? 'badge-orange' : 'badge-blue'}">${u.role === 'admin' ? 'Admin' : 'Technicien'}</span></td>
+          <td>${esc(u.telephone || '—')}</td>
+          <td class="mono">${esc(u.matricule_voiture || '—')}</td>
+          <td class="mono">${u.gasoil_mensuel ? parseFloat(u.gasoil_mensuel).toFixed(2) + ' €' : '—'}</td>
+          <td><span class="badge ${u.est_actif ? 'badge-green' : 'badge-red'}">${u.est_actif ? 'Actif' : 'Inactif'}</span></td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="btn-sm" style="padding:5px 8px;font-size:11px" onclick='openEditUser(${JSON.stringify(u)})'>✏️ Modifier</button>
+              <button class="btn-sm orange" style="padding:5px 8px;font-size:11px" onclick="resetPassword(${u.id},'${esc(u.username)}')">🔑 MDP</button>
+              <button class="btn-sm ${u.est_actif ? 'danger' : ''}" style="padding:5px 8px;font-size:11px" onclick="toggleUser(${u.id},${u.est_actif})">${u.est_actif ? '🚫 Désactiver' : '✅ Activer'}</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')}
+    </tbody>
+    `;
+  } catch(e) { 
+    console.warn('[loadTechniciens]', e);
+    document.getElementById('techniciens-body').innerHTML = '<div class="empty">Erreur de chargement</div>';
+  }
+}
+async function saveProfil(){try{await apiFetch('/auth/me/',{method:'PATCH',body:JSON.stringify({first_name:document.getElementById('profil-prenom').value,last_name:document.getElementById('profil-nom').value,email:document.getElementById('profil-email').value,telephone:document.getElementById('profil-tel').value})});toast('✅ Profil mis à jour !');const me=await apiFetch('/auth/me/');const name=me.first_name||me.username;document.getElementById('user-name').textContent=name;document.getElementById('user-avatar').textContent=name[0].toUpperCase();loadProfil();}catch{toast('Erreur.','error');}}
+async function saveNewPassword(){const a=document.getElementById('profil-ancien-mdp').value,n=document.getElementById('profil-nouveau-mdp').value,c=document.getElementById('profil-confirm-mdp').value;if(!a||!n){toast('Remplis tous les champs !','error');return;}if(n.length<8){toast('8 car. min !','error');return;}if(n!==c){toast('Mots de passe différents !','error');return;}try{await apiFetch('/auth/change-password/',{method:'POST',body:JSON.stringify({ancien_mot_de_passe:a,nouveau_mot_de_passe:n})});toast('✅ Mot de passe modifié !');['profil-ancien-mdp','profil-nouveau-mdp','profil-confirm-mdp'].forEach(id=>document.getElementById(id).value='');}catch{toast('❌ Ancien mot de passe incorrect.','error');}}
+async function loadProfil() {
+  try {
+    const me = await apiFetch('/auth/me/');
+    console.log('Données du profil:', me); // ✅ Debug: voir ce que l'API retourne
+    
+    const fn = `${me.first_name || ''} ${me.last_name || ''}`.trim() || me.username;
+    document.getElementById('profil-avatar').textContent = fn[0].toUpperCase();
+    document.getElementById('profil-fullname').textContent = fn;
+    document.getElementById('profil-username-display').textContent = `@${me.username}`;
+    document.getElementById('profil-role-badge').textContent = me.role === 'admin' ? 'Administrateur' : 'Technicien';
+    document.getElementById('profil-prenom').value = me.first_name || '';
+    document.getElementById('profil-nom').value = me.last_name || '';
+    document.getElementById('profil-email').value = me.email || '';
+    document.getElementById('profil-tel').value = me.telephone || '';
+    
+    // ✅ Afficher matricule et gasoil
+    const matriculeEl = document.getElementById('profil-matricule');
+    const gasoilEl = document.getElementById('profil-gasoil');
+    
+    if (matriculeEl) {
+      matriculeEl.textContent = me.matricule_voiture || 'Non renseigné';
+    }
+    if (gasoilEl) {
+      if (me.gasoil_mensuel) {
+        gasoilEl.textContent = `${parseFloat(me.gasoil_mensuel).toFixed(2)} €`;
+      } else {
+        gasoilEl.textContent = 'Non renseigné';
+      }
+    }
+    const driveContainer = document.getElementById('profil-drive-container');
+if (driveContainer) {
+  if (me.lien_drive) {
+    driveContainer.innerHTML = `<a href="${esc(me.lien_drive)}" target="_blank"
+      style="font-size:13px;color:var(--accent);font-weight:600;text-decoration:none;margin-left:6px">
+      📂 Ouvrir Drive</a>`;
+  } else {
+    driveContainer.innerHTML = '<strong style="font-size:14px;margin-left:6px;color:var(--text3)">Non renseigné</strong>';
+  }
+}
+  } catch(e) { 
+    console.warn('[loadProfil]', e);
+    toast('Erreur chargement profil', 'error');
+  }
+}
+/* ══ EXPORT ══════════════════════════════════════════ */
+async function exportFichier(type){try{const res=await fetch(`${API}/reporting/export/${type}/`,{headers:{'Authorization':`Bearer ${token}`}});if(!res.ok)throw new Error(`HTTP ${res.status}`);const blob=await res.blob();if(blob.size===0)throw new Error('Fichier vide');const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`rapport_omega_${new Date().toISOString().split('T')[0]}.${type==='excel'?'xlsx':'pdf'}`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);toast(`✅ Export ${type.toUpperCase()} téléchargé !`);}catch(e){toast(`Erreur export : ${e.message}`,'error');}}
+
+/* ══ UTILS ═══════════════════════════════════════════ */
+function esc(s){if(!s&&s!==0)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function openLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('open');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');document.getElementById('lightbox-img').src='';}
+function openModal(id){if(id==='modal-bareme-tech'||id==='modal-bareme-op'){loadTypes();if(id==='modal-bareme-op')loadOperateurs();}document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ✅ CHANGE 6 — createTechnicien avec matricule et gasoil
+async function createTechnicien() {
+  const btn = document.querySelector('#modal-tech .btn-sm');
+  const originalText = btn ? btn.textContent : 'Créer';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Création...'; }
+  
+  try {
+    const payload = {
+      username: document.getElementById('tech-username').value,
+      first_name: document.getElementById('tech-firstname').value,
+      last_name: document.getElementById('tech-lastname').value,
+      email: document.getElementById('tech-email').value,
+      telephone: document.getElementById('tech-tel').value,
+      password: document.getElementById('tech-password').value,
+      role: document.getElementById('tech-role').value
+    };
+    
+    // ✅ Ajouter matricule et gasoil
+    const matricule = document.getElementById('tech-matricule').value.trim();
+    const gasoil = document.getElementById('tech-gasoil').value;
+    
+    if (matricule) payload.matricule_voiture = matricule;
+    if (gasoil && !isNaN(parseFloat(gasoil))) payload.gasoil_mensuel = parseFloat(gasoil);
+    
+    // Validation
+    if (!payload.username || !payload.password) {
+      toast('❌ Nom d\'utilisateur et mot de passe requis', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = originalText; }
+      return;
+    }
+    
+    if (payload.password.length < 8) {
+      toast('❌ Le mot de passe doit contenir au moins 8 caractères', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = originalText; }
+      return;
+    }
+    
+    const response = await fetch(`${API}/auth/users/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      let errorMsg = "Erreur lors de la création";
+      if (errorData.username) errorMsg = `Nom d'utilisateur: ${errorData.username.join(', ')}`;
+      else if (errorData.email) errorMsg = `Email: ${errorData.email.join(', ')}`;
+      else if (errorData.detail) errorMsg = errorData.detail;
+      toast(`❌ ${errorMsg}`, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = originalText; }
+      return;
+    }
+    
+    closeModal('modal-tech');
+    // Réinitialiser le formulaire
+    document.getElementById('tech-username').value = '';
+    document.getElementById('tech-firstname').value = '';
+    document.getElementById('tech-lastname').value = '';
+    document.getElementById('tech-email').value = '';
+    document.getElementById('tech-tel').value = '';
+    document.getElementById('tech-matricule').value = '';
+    document.getElementById('tech-gasoil').value = '';
+    document.getElementById('tech-drive').value = '';
+    document.getElementById('tech-password').value = '';
+    document.getElementById('tech-role').value = 'technicien';
+    
+    loadTechniciens();
+    loadTechniciensForSelect();
+    toast('✅ Compte créé avec succès !');
+    
+  } catch(error) {
+    console.error('[createTechnicien]', error);
+    toast('❌ Erreur réseau ou serveur', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
+  }
+}
+
+async function saveBaremeTech(){try{await apiFetch('/interventions/baremes/technicien/',{method:'POST',body:JSON.stringify({type_intervention:document.getElementById('bt-type').value,prix:document.getElementById('bt-prix').value})});closeModal('modal-bareme-tech');loadBaremesTech();toast('✅ Barème enregistré !');}catch{toast('Erreur.','error');}}
+async function saveBaremeOp(){try{await apiFetch('/interventions/baremes/operateur/',{method:'POST',body:JSON.stringify({type_intervention:document.getElementById('bo-type').value,operateur:document.getElementById('bo-op').value,prix:document.getElementById('bo-prix').value})});closeModal('modal-bareme-op');loadBaremesOp();toast('✅ Barème enregistré !');}catch{toast('Erreur.','error');}}
+
+/* ══ INIT ════════════════════════════════════════════ */
+if(token){apiFetch('/auth/me/').then(()=>startApp()).catch(()=>{token='';localStorage.removeItem('omega_token');});}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));closeLightbox();closeCamera();}
+  if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();
+});
+// ══ GASOIL — TOUTES LES OPÉRATIONS PASSENT PAR L'API ══
+
+// Ajouter un plein — POST /api/gasoil/
+async function ajouterGasoil() {
+  const date = document.getElementById('gasoil-date').value;
+  const montant = parseFloat(document.getElementById('gasoil-montant').value);
+  const km = parseInt(document.getElementById('gasoil-km').value);
+
+  if (!date || isNaN(montant) || montant <= 0) {
+    toast('❌ Veuillez remplir la date et le montant', 'error');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API}/gasoil/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        date: date,
+        montant: montant,
+        kilometrage: isNaN(km) ? null : km
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || JSON.stringify(error));
+    }
+
+    toast(`✅ Plein de ${montant.toFixed(2)} € enregistré !`);
+    document.getElementById('gasoil-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('gasoil-montant').value = '';
+    document.getElementById('gasoil-km').value = '';
+    loadGasoilHistory();
+    if (currentUser?.role === 'admin') loadAdminGasoil();
+
+  } catch(e) {
+    console.error('[ajouterGasoil]', e);
+    toast('❌ Erreur : ' + e.message, 'error');
+  }
+}
+
+// Charger l'historique du technicien — GET /api/gasoil/
+async function loadGasoilHistory() {
+  const body = document.getElementById('gasoil-history-body');
+  const totalEl = document.getElementById('total-gasoil-mois');
+  if (!body) return;
+
+  body.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+
+  try {
+    const data = await apiFetch('/gasoil/');
+    const list = Array.isArray(data) ? data : (data.results || []);
+
+    const now = new Date();
+    const moisCourant = now.getMonth();
+    const anneeCourante = now.getFullYear();
+    const moisNom = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+    const totalMois = list.reduce((sum, e) => {
+      const d = new Date(e.date);
+      if (d.getMonth() === moisCourant && d.getFullYear() === anneeCourante) {
+        return sum + parseFloat(e.montant || 0);
+      }
+      return sum;
+    }, 0);
+
+    if (totalEl) totalEl.textContent = `Total ${moisNom}: ${totalMois.toFixed(2)} €`;
+
+    if (!list.length) {
+      body.innerHTML = '<div class="empty">Aucun plein enregistré</div>';
+      return;
+    }
+
+    body.innerHTML = `
+      <table style="width:100%">
+        <thead>
+          <tr><th>Date</th><th>Montant</th><th>Kilométrage</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          ${list.sort((a,b) => new Date(b.date) - new Date(a.date)).map(e => `
+            <tr>
+              <td>${new Date(e.date).toLocaleDateString('fr-FR')}</td>
+              <td class="mono" style="color:var(--accent2)">${parseFloat(e.montant).toFixed(2)} €</td>
+              <td class="mono">${e.kilometrage ? parseInt(e.kilometrage).toLocaleString() + ' km' : '—'}</td>
+              <td>
+                <button class="btn-sm danger" style="padding:4px 8px;font-size:11px"
+                  onclick="supprimerGasoil(${e.id})">🗑</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+  } catch(e) {
+    console.error('[loadGasoilHistory]', e);
+    body.innerHTML = `<div class="empty" style="color:var(--danger)">
+      ❌ Erreur de chargement (${e.message})<br>
+      <small style="color:var(--text3)">Vérifiez que /api/gasoil/ est accessible</small>
+    </div>`;
+  }
+}
+
+// Supprimer un plein — DELETE /api/gasoil/<id>/
+async function supprimerGasoil(id) {
+  if (!confirm('Supprimer cette entrée ?')) return;
+
+  try {
+    const response = await fetch(`${API}/gasoil/${id}/`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok && response.status !== 204) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Erreur suppression');
+    }
+
+    toast('✅ Entrée supprimée');
+    loadGasoilHistory();
+    if (currentUser?.role === 'admin') loadAdminGasoil();
+
+  } catch(e) {
+    console.error('[supprimerGasoil]', e);
+    toast('❌ Erreur lors de la suppression', 'error');
+  }
+}
+
+// Rapport admin — GET /api/gasoil/ (l'admin voit tout)
+async function loadAdminGasoil() {
+  const body = document.getElementById('admin-gasoil-body');
+  const detailBody = document.getElementById('admin-gasoil-detail-body');
+  if (!body) return;
+
+  body.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+  if (detailBody) detailBody.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+
+  const moisSelect = document.getElementById('admin-gasoil-mois');
+  let mois = moisSelect?.value;
+  if (!mois) {
+    const now = new Date();
+    mois = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    if (moisSelect) moisSelect.value = mois;
+  }
+  const [annee, moisNum] = mois.split('-');
+  const moisNom = new Date(parseInt(annee), parseInt(moisNum) - 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+  try {
+    const data = await apiFetch('/gasoil/');
+    const allEntries = Array.isArray(data) ? data : (data.results || []);
+
+    const filtered = allEntries.filter(e => {
+      const d = new Date(e.date);
+      return d.getFullYear() == annee && d.getMonth() + 1 == moisNum;
+    });
+
+    // Grouper par technicien
+    const byTechnicien = {};
+    filtered.forEach(e => {
+      const key = e.technicien;
+      if (!byTechnicien[key]) {
+        byTechnicien[key] = {
+          nom: e.technicien_nom || `Technicien #${e.technicien}`,
+          total: 0,
+          entries: []
+        };
+      }
+      byTechnicien[key].total += parseFloat(e.montant || 0);
+      byTechnicien[key].entries.push(e);
+    });
+
+    if (Object.keys(byTechnicien).length === 0) {
+      body.innerHTML = `<div class="empty">Aucune dépense gasoil pour ${moisNom}</div>`;
+    } else {
+      body.innerHTML = `
+        <table style="width:100%">
+          <thead>
+            <tr><th>Technicien</th><th>Total gasoil (€)</th><th>Nb pleins</th><th>Moyenne/plein</th></tr>
+          </thead>
+          <tbody>
+            ${Object.entries(byTechnicien).map(([id, d]) => `
+              <tr>
+                <td><strong>${esc(d.nom)}</strong></td>
+                <td class="mono" style="color:var(--accent2)">${d.total.toFixed(2)} €</td>
+                <td>${d.entries.length}</td>
+                <td class="mono">${(d.total / d.entries.length).toFixed(2)} €</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    if (detailBody) {
+      if (!filtered.length) {
+        detailBody.innerHTML = `<div class="empty">Aucune donnée détaillée pour ${moisNom}</div>`;
+      } else {
+        detailBody.innerHTML = `
+          <table style="width:100%">
+            <thead>
+              <tr><th>Date</th><th>Technicien</th><th>Montant</th><th>Kilométrage</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              ${filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).map(e => `
+                <tr>
+                  <td>${new Date(e.date).toLocaleDateString('fr-FR')}</td>
+                  <td>${esc(e.technicien_nom || '—')}</td>
+                  <td class="mono" style="color:var(--accent2)">${parseFloat(e.montant).toFixed(2)} €</td>
+                  <td class="mono">${e.kilometrage ? parseInt(e.kilometrage).toLocaleString() + ' km' : '—'}</td>
+                  <td>
+                    <button class="btn-sm danger" style="padding:4px 8px;font-size:11px"
+                      onclick="supprimerGasoil(${e.id})">🗑</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+
+  } catch(e) {
+    console.error('[loadAdminGasoil]', e);
+    body.innerHTML = `<div class="empty" style="color:var(--danger)">❌ Erreur : ${e.message}</div>`;
+  }
+}
+
+// Initialiser la date par défaut
+document.addEventListener('DOMContentLoaded', () => {
+  const dateInput = document.getElementById('gasoil-date');
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+});
+
+// Dans ton app.js
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(() => console.log('SW enregistré ✅'));
+}
+</script>
+</body>
+</html>
