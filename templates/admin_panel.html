@@ -1153,10 +1153,11 @@ function showPage(name, el) {
   document.getElementById(`page-${name}`).classList.add('active');
   if (el) el.classList.add('active');
   
-  // Fermer le menu sur mobile
-  document.querySelector('.sidebar').classList.remove('open');
+  // Fermer le menu UNIQUEMENT sur mobile
+  if (window.innerWidth <= 768) {
+    document.querySelector('.sidebar').classList.remove('open');
+  }
 }
-
 /* ══ DASHBOARD ══════════════════════════════════════ */
 async function loadDashboard(isAdmin) {
   const admin = isAdmin !== undefined ? isAdmin : (currentUser?.role === 'admin');
@@ -2377,6 +2378,7 @@ function clearConstatForm(){['constat-intervention-id','constat-description','co
 async function loadTechniciens() {
   try{const data=await apiFetch('/auth/users/');const list=Array.isArray(data)?data:(data.results||[]);const body=document.getElementById('techniciens-body');if(!list.length){body.innerHTML='<div class="empty">Aucun utilisateur</div>';return;}body.innerHTML=`<table><thead><tr><th>Nom</th><th>Identifiant</th><th>Rôle</th><th>Téléphone</th><th>Statut</th><th>Actions</th></tr></thead><tbody>${list.map(u=>`<tr><td>${esc(u.first_name||'')} ${esc(u.last_name||'')}</td><td class="mono">${esc(u.username)}</td><td><span class="badge ${u.role==='admin'?'badge-orange':'badge-blue'}">${u.role}</span></td><td>${esc(u.telephone||'—')}</td><td><span class="badge ${u.est_actif?'badge-green':'badge-red'}">${u.est_actif?'Actif':'Inactif'}</span></td><td><div style="display:flex;gap:4px"><button class="btn-sm" style="padding:5px 8px" onclick='openEditUser(${JSON.stringify(u)})'>✏️</button><button class="btn-sm orange" style="padding:5px 8px" onclick="resetPassword(${u.id},'${esc(u.username)}')">🔑</button><button class="btn-sm ${u.est_actif?'danger':''}" style="padding:5px 8px;${!u.est_actif?'background:var(--accent2);color:#0f1117':''}" onclick="toggleUser(${u.id},${u.est_actif})">${u.est_actif?'🚫':'✅'}</button></div></td></tr>`).join('')}</tbody></table>`;}catch{}
 }
+
 function openEditUser(u) {
   document.getElementById('edit-user-id').value = u.id;
   document.getElementById('edit-firstname').value = u.first_name || '';
