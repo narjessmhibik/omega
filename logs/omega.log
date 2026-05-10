@@ -4803,3 +4803,13 @@ Not Found: /sw.js
 Not Found: /sw.js
 "GET /sw.js HTTP/1.1" 404 4248
 "GET /static/icons/icon-192.png HTTP/1.1" 404 1868
+Not Found: /sw.js
+"GET /sw.js HTTP/1.1" 404 4248
+"GET /static/icons/icon-512.png HTTP/1.1" 404 1868
+"GET /static/icons/icon-192.png HTTP/1.1" 404 1868
+You're accessing the development server over HTTPS, but it only supports HTTP.
+You're accessing the development server over HTTPS, but it only supports HTTP.
+Not Found: /sw.js
+"GET /sw.js HTTP/1.1" 404 4248
+"GET /static/icons/icon-512.png HTTP/1.1" 404 1868
+"GET /static/icons/icon-192.png HTTP/1.1" 404 1868

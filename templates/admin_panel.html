@@ -320,7 +320,24 @@
       <div class="nav-section admin-nav">Exports</div>
       <div class="nav-item admin-nav" onclick="exportFichier('excel')"><span class="icon">📥</span> Export Excel</div>
       <div class="nav-item admin-nav" onclick="exportFichier('pdf')"><span class="icon">📄</span> Export PDF</div>
-      
+      <div class="nav-item admin-nav" onclick="showPage('historique-mensuel',this);loadHistoriqueMensuel()">
+    <span class="icon">📅</span> Historique mensuel
+</div>
+      <!-- HISTORIQUE MENSUEL -->
+<div class="page" id="page-historique-mensuel">
+  <div class="page-header">
+    <div>
+      <div class="page-title">📅 Historique mensuel</div>
+      <div class="page-sub">CA, coûts et marges par mois</div>
+    </div>
+    <button class="btn-outline" onclick="loadHistoriqueMensuel()">↻ Actualiser</button>
+  </div>
+  <div class="card">
+    <div id="historique-mensuel-body">
+      <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+  </div>
+</div>
       <div class="nav-section tech-nav">Communication</div>
       <div class="nav-item tech-nav nav-item-notif" onclick="showPage('annonces-tech',this);loadAnnoncesTech();clearTechNotifBadge()"><span class="icon">📢</span> Mes annonces<span id="badge-tech-notif" style="display:none;background:var(--accent3);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">!</span></div>
       
@@ -2619,7 +2636,59 @@ async function createTechnicien() {
 
 async function saveBaremeTech(){try{await apiFetch('/interventions/baremes/technicien/',{method:'POST',body:JSON.stringify({type_intervention:document.getElementById('bt-type').value,prix:document.getElementById('bt-prix').value})});closeModal('modal-bareme-tech');loadBaremesTech();toast('✅ Barème enregistré !');}catch{toast('Erreur.','error');}}
 async function saveBaremeOp(){try{await apiFetch('/interventions/baremes/operateur/',{method:'POST',body:JSON.stringify({type_intervention:document.getElementById('bo-type').value,operateur:document.getElementById('bo-op').value,prix:document.getElementById('bo-prix').value})});closeModal('modal-bareme-op');loadBaremesOp();toast('✅ Barème enregistré !');}catch{toast('Erreur.','error');}}
-
+async function loadHistoriqueMensuel() {
+  const body = document.getElementById('historique-mensuel-body');
+  if (!body) return;
+  body.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+  
+  try {
+    const data = await apiFetch('/reporting/historique-mensuel/');
+    const list = Array.isArray(data) ? data : [];
+    
+    if (!list.length) {
+      body.innerHTML = '<div class="empty">Aucun historique disponible</div>';
+      return;
+    }
+    
+    body.innerHTML = `
+      <table style="width:100%">
+        <thead>
+          <tr>
+            <th>Mois</th>
+            <th>Interventions</th>
+            <th>Réussies</th>
+            <th>CA (€)</th>
+            <th>Coûts (€)</th>
+            <th>Marge (€)</th>
+            <th>Export</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map(m => `
+            <tr>
+              <td><strong>${esc(m.label)}</strong></td>
+              <td><span class="badge badge-blue">${m.nb_interventions}</span></td>
+              <td><span class="badge badge-green">${m.nb_reussies}</span></td>
+              <td class="mono" style="color:var(--accent)">${m.ca.toFixed(2)} €</td>
+              <td class="mono" style="color:var(--danger)">${m.couts.toFixed(2)} €</td>
+              <td class="mono" style="color:var(--accent2)">${m.marge.toFixed(2)} €</td>
+              <td>
+                <a href="https://narjess.pythonanywhere.com/api/reporting/export/excel/${m.mois}/"
+                   class="btn-sm green"
+                   style="text-decoration:none;padding:5px 10px;font-size:11px"
+                   download>
+                  📥 Excel
+                </a>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch(e) {
+    body.innerHTML = `<div class="empty" style="color:var(--danger)">❌ Erreur : ${e.message}</div>`;
+  }
+}
 /* ══ INIT ════════════════════════════════════════════ */
 if(token){apiFetch('/auth/me/').then(()=>startApp()).catch(()=>{token='';localStorage.removeItem('omega_token');});}
 document.addEventListener('keydown',e=>{
