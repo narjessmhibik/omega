@@ -266,8 +266,7 @@
 </div>
 
 <!-- LOGIN -->
-<button id="menu-toggle" 
-        onclick="event.stopPropagation(); toggleMenu()">☰</button>
+<<button id="menu-toggle">☰</button>
 <div id="login-screen">
   <div class="login-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
@@ -2381,9 +2380,7 @@ async function genererPDF(constat, signataire, sigDataUrl) {
 function clearConstatForm(){['constat-intervention-id','constat-description','constat-signataire'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('constat-categorie').value='';constatPhotos.avant=[];constatPhotos.apres=[];renderPhotosGrid('avant');renderPhotosGrid('apres');clearSignature();document.getElementById('constat-error').style.display='none';}
 
 /* ══ TECHNICIENS ════════════════════════════════════ */
-async function loadTechniciens() {
-  try{const data=await apiFetch('/auth/users/');const list=Array.isArray(data)?data:(data.results||[]);const body=document.getElementById('techniciens-body');if(!list.length){body.innerHTML='<div class="empty">Aucun utilisateur</div>';return;}body.innerHTML=`<table><thead><tr><th>Nom</th><th>Identifiant</th><th>Rôle</th><th>Téléphone</th><th>Statut</th><th>Actions</th></tr></thead><tbody>${list.map(u=>`<tr><td>${esc(u.first_name||'')} ${esc(u.last_name||'')}</td><td class="mono">${esc(u.username)}</td><td><span class="badge ${u.role==='admin'?'badge-orange':'badge-blue'}">${u.role}</span></td><td>${esc(u.telephone||'—')}</td><td><span class="badge ${u.est_actif?'badge-green':'badge-red'}">${u.est_actif?'Actif':'Inactif'}</span></td><td><div style="display:flex;gap:4px"><button class="btn-sm" style="padding:5px 8px" onclick='openEditUser(${JSON.stringify(u)})'>✏️</button><button class="btn-sm orange" style="padding:5px 8px" onclick="resetPassword(${u.id},'${esc(u.username)}')">🔑</button><button class="btn-sm ${u.est_actif?'danger':''}" style="padding:5px 8px;${!u.est_actif?'background:var(--accent2);color:#0f1117':''}" onclick="toggleUser(${u.id},${u.est_actif})">${u.est_actif?'🚫':'✅'}</button></div></td></tr>`).join('')}</tbody></table>`;}catch{}
-}
+
 
 function openEditUser(u) {
   document.getElementById('edit-user-id').value = u.id;
@@ -2980,6 +2977,13 @@ async function exportExcelMois(mois) {
     toast('❌ Erreur export : ' + e.message, 'error');
   }
 }
+// Fix définitif bouton menu
+document.getElementById('menu-toggle').addEventListener('click', function(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  document.querySelector('.sidebar').classList.toggle('open');
+});
 </script>
+
 </body>
 </html>
