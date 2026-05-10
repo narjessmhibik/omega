@@ -324,20 +324,7 @@
     <span class="icon">📅</span> Historique mensuel
 </div>
       <!-- HISTORIQUE MENSUEL -->
-<div class="page" id="page-historique-mensuel">
-  <div class="page-header">
-    <div>
-      <div class="page-title">📅 Historique mensuel</div>
-      <div class="page-sub">CA, coûts et marges par mois</div>
-    </div>
-    <button class="btn-outline" onclick="loadHistoriqueMensuel()">↻ Actualiser</button>
-  </div>
-  <div class="card">
-    <div id="historique-mensuel-body">
-      <div class="loading"><div class="spinner"></div> Chargement...</div>
-    </div>
-  </div>
-</div>
+
       <div class="nav-section tech-nav">Communication</div>
       <div class="nav-item tech-nav nav-item-notif" onclick="showPage('annonces-tech',this);loadAnnoncesTech();clearTechNotifBadge()"><span class="icon">📢</span> Mes annonces<span id="badge-tech-notif" style="display:none;background:var(--accent3);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">!</span></div>
       
@@ -666,7 +653,26 @@
         <div id="reclamations-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
       </div>
     </div>
+<!-- RÉCLAMATIONS -->
+<div class="page" id="page-reclamations">
+  ...
+</div>
 
+<!-- HISTORIQUE MENSUEL -->  ← colle ici
+<div class="page" id="page-historique-mensuel">
+  <div class="page-header">
+    <div>
+      <div class="page-title">📅 Historique mensuel</div>
+      <div class="page-sub">CA, coûts et marges par mois</div>
+    </div>
+    <button class="btn-outline" onclick="loadHistoriqueMensuel()">↻ Actualiser</button>
+  </div>
+  <div class="card">
+    <div id="historique-mensuel-body">
+      <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+  </div>
+</div>
 <!-- PROFIL -->
 <div class="page" id="page-profil">
   <div class="page-header">
