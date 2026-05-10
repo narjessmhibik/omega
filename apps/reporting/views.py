@@ -448,3 +448,36 @@ class ExportExcelMoisView(APIView):
             return response
         except Exception as e:
             return Response({'error': str(e)}, status=500)
+        
+
+class HistoriqueMensuelTechView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        interventions = Intervention.objects.filter(
+            technicien=request.user
+        ).order_by('-date_intervention')
+
+        mois_dict = {}
+        for inv in interventions:
+            if not inv.date_intervention:
+                continue
+            cle = inv.date_intervention.strftime('%Y-%m')
+            label = inv.date_intervention.strftime('%B %Y')
+
+            if cle not in mois_dict:
+                mois_dict[cle] = {
+                    'mois': cle,
+                    'label': label,
+                    'nb_interventions': 0,
+                    'nb_reussies': 0,
+                    'gains': 0.0,
+                }
+
+            mois_dict[cle]['nb_interventions'] += 1
+            if est_reussie(inv):
+                mois_dict[cle]['nb_reussies'] += 1
+                mois_dict[cle]['gains'] += get_cout_technicien(inv)
+
+        result = sorted(mois_dict.values(), key=lambda x: x['mois'], reverse=True)
+        return Response(result)

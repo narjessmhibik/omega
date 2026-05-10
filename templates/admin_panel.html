@@ -323,7 +323,6 @@
       <div class="nav-item admin-nav" onclick="showPage('historique-mensuel',this);loadHistoriqueMensuel()">
     <span class="icon">📅</span> Historique mensuel
 </div>
-      <!-- HISTORIQUE MENSUEL -->
 
       <div class="nav-section tech-nav">Communication</div>
       <div class="nav-item tech-nav nav-item-notif" onclick="showPage('annonces-tech',this);loadAnnoncesTech();clearTechNotifBadge()"><span class="icon">📢</span> Mes annonces<span id="badge-tech-notif" style="display:none;background:var(--accent3);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">!</span></div>
@@ -653,8 +652,15 @@
         <div id="reclamations-body"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
       </div>
     </div>
-    
-<!-- HISTORIQUE MENSUEL -->  ← colle ici
+
+<!-- RÉCLAMATIONS -->
+<div class="page" id="page-reclamations">
+  ...
+</div>
+
+
+<!-- HISTORIQUE MENSUEL -->  
+
 <div class="page" id="page-historique-mensuel">
   <div class="page-header">
     <div>
@@ -1038,7 +1044,7 @@
 
 <script>
 /* ══════════════════════ CONFIG ══════════════════════ */
-const API = 'https://narjess.pythonanywhere.com/api';
+const API = 'https://narjess.pythonanywhere.com/api'; // ← toujours PythonAnywhere !
 let token = localStorage.getItem('omega_token') || '';
 let currentUser = null;
 let cameraStream = null, cameraCtx = null;
@@ -2675,6 +2681,13 @@ async function loadHistoriqueMensuel() {
               <td class="mono" style="color:var(--danger)">${m.couts.toFixed(2)} €</td>
               <td class="mono" style="color:var(--accent2)">${m.marge.toFixed(2)} €</td>
               <td>
+
+
+<button class="btn-sm green" style="padding:5px 10px;font-size:11px"
+  onclick="exportExcelMois('${m.mois}')">
+  📥 Excel
+</button>
+
                 <a href="https://narjess.pythonanywhere.com/api/reporting/export/excel/${m.mois}/"
                    class="btn-sm green"
                    style="text-decoration:none;padding:5px 10px;font-size:11px"
@@ -2938,6 +2951,26 @@ if ('serviceWorker' in navigator) {
 }
 function toggleMenu() {
   document.querySelector('.sidebar').classList.toggle('open');
+}
+async function exportExcelMois(mois) {
+  try {
+    const res = await fetch(`${API}/reporting/export/excel/${mois}/`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `omega_${mois}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('✅ Export Excel téléchargé !');
+  } catch(e) {
+    toast('❌ Erreur export : ' + e.message, 'error');
+  }
 }
 </script>
 </body>
