@@ -364,3 +364,87 @@ class ExportPDFView(APIView):
         except Exception as e:
             print(f"Erreur ExportPDF: {str(e)}")
             return Response({'error': str(e)}, status=500)
+        
+
+class HistoriqueMensuelView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        interventions = Intervention.objects.all().order_by('-date_intervention')
+        
+        mois_dict = {}
+        for inv in interventions:
+            if not inv.date_intervention:
+                continue
+            cle = inv.date_intervention.strftime('%Y-%m')
+            label = inv.date_intervention.strftime('%B %Y')
+            
+            if cle not in mois_dict:
+                mois_dict[cle] = {
+                    'mois': cle,
+                    'label': label,
+                    'nb_interventions': 0,
+                    'nb_reussies': 0,
+                    'ca': 0.0,
+                    'couts': 0.0,
+                    'marge': 0.0,
+                }
+            
+            mois_dict[cle]['nb_interventions'] += 1
+            reussie = est_reussie(inv)
+            if reussie:
+                ca = get_ca_client(inv)
+                cout = get_cout_technicien(inv)
+                mois_dict[cle]['nb_reussies'] += 1
+                mois_dict[cle]['ca'] += ca
+                mois_dict[cle]['couts'] += cout
+                mois_dict[cle]['marge'] += ca - cout
+
+        result = sorted(mois_dict.values(), key=lambda x: x['mois'], reverse=True)
+        return Response(result)
+
+
+class ExportExcelMoisView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request, mois):
+        if not OPENPYXL_AVAILABLE:
+            return Response({'error': 'openpyxl non installé'}, status=500)
+        try:
+            annee, mois_num = mois.split('-')
+            interventions = Intervention.objects.filter(
+                date_intervention__year=annee,
+                date_intervention__month=mois_num
+            ).order_by('-date_intervention')
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = f"Mois {mois}"
+
+            headers = ['N°', 'Ticket', 'Technicien', 'Opérateur', 'Type',
+                      'Date', 'Statut', 'CA (€)', 'Gain Tech (€)', 'Marge (€)']
+            ws.append(headers)
+
+            for index, inv in enumerate(interventions, start=1):
+                reussie = est_reussie(inv)
+                ca = get_ca_client(inv) if reussie else 0.0
+                cout = get_cout_technicien(inv) if reussie else 0.0
+                ws.append([
+                    index,
+                    inv.ticket_id or "-",
+                    inv.technicien.get_full_name() if inv.technicien else "-",
+                    inv.operateur.nom if inv.operateur else "-",
+                    inv.type_intervention.nom if inv.type_intervention else "-",
+                    inv.date_intervention.strftime('%d/%m/%Y') if inv.date_intervention else "-",
+                    inv.statut.nom if inv.statut else "-",
+                    ca, cout, ca - cout
+                ])
+
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename="omega_{mois}.xlsx"'
+            wb.save(response)
+            return response
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
