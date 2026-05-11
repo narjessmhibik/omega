@@ -11,6 +11,6 @@ urlpatterns = [
     path('export/excel/', views.ExportExcelView.as_view(), name='export_excel'),
     path('export/pdf/', views.ExportPDFView.as_view(), name='export_pdf'),
     path('historique-mensuel/', HistoriqueMensuelView.as_view()),
-        path('historique-mensuel/tech/', HistoriqueMensuelTechView.as_view()),  # ← ajouter
+    path('historique-mensuel/tech/', HistoriqueMensuelTechView.as_view()),  # ← ajouter
     path('export/excel/<str:mois>/', ExportExcelMoisView.as_view()),
 ]

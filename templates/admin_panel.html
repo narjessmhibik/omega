@@ -353,6 +353,10 @@
 
       <div class="nav-section tech-nav">Communication</div>
       <div class="nav-item tech-nav nav-item-notif" onclick="showPage('annonces-tech',this);loadAnnoncesTech();clearTechNotifBadge()"><span class="icon">📢</span> Mes annonces<span id="badge-tech-notif" style="display:none;background:var(--accent3);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">!</span></div>
+      <div class="nav-section tech-nav">Historique</div>
+<div class="nav-item tech-nav" onclick="showPage('historique-tech',this);loadHistoriqueTech()">
+    <span class="icon">📅</span> Mon historique
+</div>
       
       <div class="nav-section">Mon compte</div>
       <div class="nav-item" onclick="showPage('profil',this);loadProfil()"><span class="icon">👤</span> Mon profil</div>
@@ -702,6 +706,24 @@
     </div>
   </div>
 </div>
+<!-- HISTORIQUE TECH -->
+<div class="page" id="page-historique-tech">
+  <div class="page-header">
+    <div>
+      <div class="page-title">📅 Mon historique mensuel</div>
+      <div class="page-sub">Mes interventions et gains par mois</div>
+    </div>
+    <button class="btn-outline" onclick="loadHistoriqueTech()">↻ Actualiser</button>
+  </div>
+  <div class="card">
+    <div id="historique-tech-body">
+      <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFIL -->
+<div class="page" id="page-profil">
 <!-- PROFIL -->
 <div class="page" id="page-profil">
   <div class="page-header">
@@ -2722,6 +2744,43 @@ async function loadHistoriqueMensuel() {
                   📥 Excel
                 </a>
               </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch(e) {
+    body.innerHTML = `<div class="empty" style="color:var(--danger)">❌ Erreur : ${e.message}</div>`;
+  }
+}
+async function loadHistoriqueTech() {
+  const body = document.getElementById('historique-tech-body');
+  if (!body) return;
+  body.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+  try {
+    const data = await apiFetch('/reporting/historique-mensuel/tech/');
+    const list = Array.isArray(data) ? data : [];
+    if (!list.length) {
+      body.innerHTML = '<div class="empty">Aucun historique disponible</div>';
+      return;
+    }
+    body.innerHTML = `
+      <table style="width:100%">
+        <thead>
+          <tr>
+            <th>Mois</th>
+            <th>Interventions</th>
+            <th>Réussies</th>
+            <th>Gains (€)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map(m => `
+            <tr>
+              <td><strong>${esc(m.label)}</strong></td>
+              <td><span class="badge badge-blue">${m.nb_interventions}</span></td>
+              <td><span class="badge badge-green">${m.nb_reussies}</span></td>
+              <td class="mono" style="color:var(--accent2)">${m.gains.toFixed(2)} €</td>
             </tr>
           `).join('')}
         </tbody>
