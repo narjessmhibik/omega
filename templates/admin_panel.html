@@ -226,6 +226,33 @@
 @media (max-width: 768px) {
     #menu-toggle { display: flex !important; }
 }
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Gasoil — formulaire en colonne sur mobile */
+  #page-gasoil .card > div > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  
+  /* Techniciens — tableau scrollable */
+  #techniciens-body, 
+  #interventions-body,
+  #admin-gasoil-body,
+  #admin-gasoil-detail-body {
+    overflow-x: auto;
+  }
+  
+  /* Tableaux — taille réduite sur mobile */
+  table {
+    font-size: 11px;
+  }
+  th, td {
+    padding: 8px 10px;
+  }
+}
 </style>
 </head>
 <body>
